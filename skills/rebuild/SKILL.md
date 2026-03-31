@@ -1,47 +1,31 @@
 ---
 name: rebuild
-description: 不更改 Build Number，仅触发 CI 重新打包。当用户要求重新打包、rebuild、重新触发 CI 时使用。
-allowed-tools: Read, Edit, Bash(git *)
+description: Use when 用户要求重新打包、rebuild 或重新触发 CI，并且不希望变更 Build Number，只需要制造一次可提交的变更来触发流水线。
 ---
 
-## 重新打包流程
+# 重新打包
 
-按以下步骤执行：
+## 概述
 
-### 1. 检查分支
+用于在不修改 Build Number 的前提下，制造一次最小文件变更并提交推送，从而重新触发 CI 打包。
 
-```bash
-git branch --show-current
-```
+## 执行步骤
 
-若在 `main` 或 `master` 上，**立即停止**，提示用户切换到 `release/`、`feat/`、`fix/` 等前缀的分支。
+1. 检查当前分支；如果在 `main` 或 `master`，立即停止并提示用户切换到功能分支或发布分支。
+2. 读取 `fastlane/release-notes.txt`，通过切换文件最后一行的尾随空格来制造最小 diff。
+3. 执行 `git add fastlane/release-notes.txt`。
+4. 执行 `git commit -m "chore: 🔧 触发重新打包"`。
+5. 执行 `git push`。
+6. 按固定格式返回分支和 Commit 信息。
 
-### 2. 触发文件变更
+## 快速检查
 
-- 读取 `fastlane/release-notes.txt`
-- 检查文件**最后一行末尾**是否有尾随空格：
-  - **有空格** → 删除该尾随空格
-  - **无空格** → 在最后一行末尾添加一个空格
-- 目的：确保文件产生 diff，触发 CI 重新打包
+- 不修改 Build Number。
+- 只使用 `fastlane/release-notes.txt` 作为触发变更文件。
+- 尾随空格的切换必须稳定且可重复。
+- 输出结果必须使用固定模板。
+- 只在非 `main` / `master` 分支执行。
 
-### 3. Git 提交
+## 资源
 
-- 执行 `git add fastlane/release-notes.txt`
-- 执行 `git commit`，message 为：`chore: 🔧 触发重新打包`
-
-### 4. 推送到远端
-
-- 执行 `git push`
-
-### 5. 输出结果
-
-完成后**严格按以下格式**输出（将 `BRANCH` 替换为当前分支名）：
-
-```
-✅ 重新打包已触发
-
-- **分支**: BRANCH
-- **Commit**: `chore: 🔧 触发重新打包`
-
-已推送到远端，等待 CI 打包即可。
-```
+- 无额外资源文件。

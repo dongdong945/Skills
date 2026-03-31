@@ -1,0 +1,4 @@
+interface:
+  display_name: "正式包打包"
+  short_description: "递增 Build Number 并触发 Release 打包"
+  default_prompt: "使用 $bump-build-release 为当前 Xcode 项目触发一次正式包打包。"

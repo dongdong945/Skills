@@ -1,57 +1,38 @@
 ---
 name: bump-build-release
-description: 递增 Xcode 项目的 Build Number 并提交正式包打包。当用户要求打正式包、release 打包时使用。
-allowed-tools: Read, Grep, Edit, Bash(git *)
+description: Use when 用户要求触发 iOS 或 Xcode 项目的正式包打包，并且需要递增 Build Number、更新发布说明、提交并推送到远端以触发 CI。
 ---
 
-## 正式包打包流程
+# 正式包打包
 
-按以下步骤执行：
+## 概述
 
-### 1. 检查分支
+用于递增 Xcode 项目的 Build Number，更新 `fastlane/release-notes.txt`，并通过提交与推送触发 Release 正式包打包。
 
-```bash
-git branch --show-current
-```
+## 执行步骤
 
-若在 `main` 或 `master` 上，**立即停止**，提示用户切换到 `release/`、`feat/`、`fix/` 等前缀的分支。
+1. 检查当前分支；如果在 `main` 或 `master`，立即停止并提示用户切换到功能分支或发布分支。
+2. 在 `*.xcodeproj/project.pbxproj` 中找到所有 `CURRENT_PROJECT_VERSION = <N>;`，统一加 1，并记录新的 Build Number 为 `NEW_BUILD`。
+3. 更新 `fastlane/release-notes.txt`：
+   - 将 `打包环境:` 后面的内容替换为 `Release`
+   - 将 `测试内容:` 之后的全部内容替换为：
+     ```text
+     Build NEW_BUILD
+     正式包
+     ```
+4. 执行 `git add <xcodeproj>/project.pbxproj fastlane/release-notes.txt`。
+5. 执行 `git commit -m "chore: 🔧 更新 build 至 NEW_BUILD 并打正式包"`。
+6. 执行 `git push`。
+7. 按固定格式返回 Build Number、打包环境、分支和 Commit 信息。
 
-### 2. 递增 CURRENT_PROJECT_VERSION
+## 快速检查
 
-- 在 `*.xcodeproj/project.pbxproj` 中找到所有 `CURRENT_PROJECT_VERSION = <N>;`
-- 将 `<N>` 加 1，所有出现位置统一更新
-- 记录新的 Build Number 为 `NEW_BUILD`
+- 只在非 `main` / `master` 分支执行。
+- 所有 `CURRENT_PROJECT_VERSION` 必须同步更新。
+- `release-notes.txt` 的打包环境必须是 `Release`。
+- 测试内容必须固定为 `Build NEW_BUILD` 与 `正式包`。
+- 输出结果必须使用固定模板。
 
-### 3. 更新 release-notes.txt
+## 资源
 
-- 读取 `fastlane/release-notes.txt`
-- 将 `打包环境:` 后面的内容替换为 `Release`
-- 将 `测试内容:` 之后的**所有内容**替换为：
-  ```
-  Build NEW_BUILD
-  正式包
-  ```
-
-### 4. Git 提交
-
-- 执行 `git add <xcodeproj>/project.pbxproj fastlane/release-notes.txt`
-- 执行 `git commit`，message 为：`chore: 🔧 更新 build 至 NEW_BUILD 并打正式包`
-
-### 5. 推送到远端
-
-- 执行 `git push`
-
-### 6. 输出结果
-
-完成后**严格按以下格式**输出（将 `NEW_BUILD` 替换为实际的新 Build Number，`BRANCH` 替换为当前分支名）：
-
-```
-✅ 正式包打包完成
-
-- **Build Number**: NEW_BUILD
-- **打包环境**: Release
-- **分支**: BRANCH
-- **Commit**: `chore: 🔧 更新 build 至 NEW_BUILD 并打正式包`
-
-已推送到远端，等待 CI 打包即可。
-```
+- 无额外资源文件。
