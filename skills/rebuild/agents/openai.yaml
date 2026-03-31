@@ -1,4 +1,4 @@
 interface:
   display_name: "重新打包"
   short_description: "不改 Build Number 重新触发 CI 打包"
-  default_prompt: "使用 $rebuild 在不变更 Build Number 的前提下重新触发一次打包。"
+  default_prompt: "使用 $rebuild 在不变更 Build Number 的前提下重新触发一次打包，优先直接执行，无需深度推理。"

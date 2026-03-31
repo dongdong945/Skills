@@ -1,4 +1,4 @@
 interface:
   display_name: "中文代码评审"
   short_description: "按严重程度输出中文代码评审问题清单"
-  default_prompt: "使用 $review-cn 审查这次改动，并按严重程度输出中文问题清单。"
+  default_prompt: "使用 $review-cn 审查这次改动，并按严重程度输出中文问题清单，优先直接执行，无需深度推理。"

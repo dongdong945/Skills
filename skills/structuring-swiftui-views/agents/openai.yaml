@@ -1,4 +1,4 @@
 interface:
   display_name: "SwiftUI View 结构"
   short_description: "统一 SwiftUI View 结构、拆分与注释约定"
-  default_prompt: "使用 $structuring-swiftui-views 检查这个 SwiftUI View 是否符合固定顺序、body 拆分、注释和 padding 职责约定。"
+  default_prompt: "使用 $structuring-swiftui-views 检查这个 SwiftUI View 是否符合固定顺序、body 拆分、注释和 padding 职责约定，优先直接执行，无需深度推理。"

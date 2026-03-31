@@ -9,6 +9,8 @@ description: Use when 编写、重构或审查 SwiftUI `View` 文件，需要统
 
 用于统一 SwiftUI `View` 文件的组织顺序、`body` 拆分方式、注释规则和 padding 职责边界。
 
+默认采用最低成本的结构整理方式，无需深度推理，不做与当前 View 无关的额外抽象。
+
 ## 执行步骤
 
 1. 先读取 `references/view-structure-conventions.md`，再开始写代码或 review。
@@ -28,6 +30,8 @@ description: Use when 编写、重构或审查 SwiftUI `View` 文件，需要统
 - 子组件负责内部 padding，父视图负责子视图之间的 spacing 和外层 padding。
 - View、属性、组件、方法都要有简短中文注释。
 - `#Preview` 位于文件末尾。
+
+- 优先按既定结构直接整理 View，无需深度推理或额外抽象发散。
 
 ## 资源
 

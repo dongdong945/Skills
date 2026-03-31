@@ -1,4 +1,4 @@
 interface:
   display_name: "测试包打包"
   short_description: "递增 Build Number 并触发 Debug 打包"
-  default_prompt: "使用 $bump-build-debug 为当前 Xcode 项目触发一次测试包打包。"
+  default_prompt: "使用 $bump-build-debug 为当前 Xcode 项目触发一次测试包打包，优先直接执行，无需深度推理。"

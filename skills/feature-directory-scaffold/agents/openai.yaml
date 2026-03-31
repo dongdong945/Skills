@@ -1,4 +1,4 @@
 interface:
   display_name: "Feature 目录骨架"
   short_description: "为业务 Feature 创建 MVVM + Clean 目录骨架"
-  default_prompt: "使用 $feature-directory-scaffold 为新的 Subscription Feature 创建目录骨架。"
+  default_prompt: "使用 $feature-directory-scaffold 为新的 Subscription Feature 创建目录骨架，优先直接执行，无需深度推理。"
