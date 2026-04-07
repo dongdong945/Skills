@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDB 数据层"
+  short_description: "Swift GRDB 数据层分层与建模模式"
+  default_prompt: "使用 $grdb-data-layer 为 Swift 工程新增或重构一个职责清晰的 GRDB 数据层。"
