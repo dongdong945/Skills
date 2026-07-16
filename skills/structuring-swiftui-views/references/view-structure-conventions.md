@@ -53,7 +53,16 @@ var body: some View {
 - 不要把多个区块、复杂条件分支和零散布局细节直接堆在 `body`。
 - 如果 `body` 只有一个非常简单的元素，可直接返回，不强制引入 `contentView`。
 
-## 4. 拆分优先级
+## 4. 布局组合
+
+叠加内容时，先判断附加内容是否属于某个主体 View：
+
+- 单个 View 的背景、前景装饰、徽标、加载状态或浮层，且附加内容不应作为同级内容参与布局时，优先使用 `background` 或 `overlay`。
+- 多个同级 View 需要共同叠放、对齐，或需要作为一个整体参与布局时，使用 `ZStack`。
+
+不要机械地用 `overlay` 或 `background` 替换所有 `ZStack`。三者在尺寸提议、布局参与方式、命中测试和无障碍语义上可能不同，应以布局职责和交互语义为判断依据。
+
+## 5. 拆分优先级
 
 当 `body` 或某个区块开始变复杂时，按以下优先级拆分：
 
@@ -77,7 +86,7 @@ var body: some View {
 - 为了“拆而拆”把每个 `Text`、`Image`、`Button` 都提成独立块
 - 同时提供一个计算属性版本和一个函数版本来表达同一段 UI
 
-## 5. padding 职责边界
+## 6. padding 职责边界
 
 布局职责按层次划分：
 
@@ -96,7 +105,7 @@ var body: some View {
 - 子组件和父视图同时给同一层内容加外边距
 - 父视图侵入子组件内部结构去补局部 padding
 
-## 6. 注释规则
+## 7. 注释规则
 
 以下对象都要补简短中文注释：
 
@@ -147,7 +156,7 @@ struct ProfileView: View {
 }
 ```
 
-## 7. 方法边界
+## 8. 方法边界
 
 public methods 与 private methods 都放在 `body` 后面。
 
@@ -157,12 +166,13 @@ public methods 与 private methods 都放在 `body` 后面。
 - private methods 只保留 UI 结构强相关的辅助逻辑
 - 业务流程、数据访问、持久化和系统调用继续下沉到 `ViewModel` 或其他层
 
-## 8. 快速检查清单
+## 9. 快速检查清单
 
 - `@Environment...` 是否在最前面
 - public properties / private properties 是否分组清晰
 - `body` 是否只保留 `contentView` 和整个 View 级 modifier
 - 是否优先使用了私有 `@ViewBuilder` 计算属性
+- 叠加布局是否根据 View 之间的职责选择了 `background`、`overlay` 或 `ZStack`
 - 父子视图的 padding 职责是否清晰
 - View、属性、组件、方法是否都有简短中文注释
 - `#Preview` 是否位于文件末尾
