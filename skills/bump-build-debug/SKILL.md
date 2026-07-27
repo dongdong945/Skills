@@ -28,22 +28,28 @@ description: Use when 用户要求触发 iOS 或 Xcode 项目的测试包打包�
    - 如果没有找到 `LAST_BUILD_COMMIT`，将 `SUMMARY` 设为 `初始化打包`。
    - 如果找到 `LAST_BUILD_COMMIT`，但区间内没有非合并提交，将 `SUMMARY` 设为 `无功能变更`。
 4. 在 `*.xcodeproj/project.pbxproj` 中找到所有 `CURRENT_PROJECT_VERSION = <N>;`，统一加 1，并记录新的 Build Number 为 `NEW_BUILD`。
-5. 更新 `fastlane/release-notes.txt`：
+5. 在 `*.xcodeproj/project.pbxproj` 中读取所有 `MARKETING_VERSION = <VERSION>;`：
+   - 所有值必须一致；不一致时停止并提示用户处理。
+   - 记录该值为 `MARKETING_VERSION`，但不在此流程中修改它。
+6. 通过 `git rev-parse --show-toplevel` 获取仓库根目录名，记录为 `PROJECT_NAME`。
+7. 更新 `fastlane/release-notes.txt`：
+   - 将第一行完整替换为 `PROJECT_NAME vMARKETING_VERSION`。
    - 将 `打包环境:` 后面的内容替换为 `Debug`
    - 将 `测试内容:` 之后的全部内容替换为：
      ```text
      Build NEW_BUILD
      SUMMARY
      ```
-6. 执行 `git add <xcodeproj>/project.pbxproj fastlane/release-notes.txt`。
-7. 执行 `git commit -m "chore: 🔧 更新 build 至 NEW_BUILD 并打包"`。
-8. 执行 `git push`。
-9. 按固定格式返回 Build Number、打包环境、分支和 Commit 信息。
+8. 执行 `git add <xcodeproj>/project.pbxproj fastlane/release-notes.txt`。
+9. 执行 `git commit -m "chore: 🔧 更新 build 至 NEW_BUILD 并打包"`。
+10. 执行 `git push`。
+11. 按固定格式返回项目名、Build Number、Marketing Version、打包环境、分支和 Commit 信息。
 
 ## 快速检查
 
 - 只在非 `main` / `master` 分支执行。
 - 所有 `CURRENT_PROJECT_VERSION` 必须同步更新。
+- 所有 `MARKETING_VERSION` 必须一致，且 `release-notes.txt` 第一行必须为 `PROJECT_NAME vMARKETING_VERSION`。
 - `release-notes.txt` 的打包环境必须是 `Debug`。
 - 摘要必须基于上次打包后的全部非合并提交；没有历史打包提交时必须为 `初始化打包`。
 - 测试内容必须包含 `Build NEW_BUILD`，且下一行只能有一句中文摘要。
