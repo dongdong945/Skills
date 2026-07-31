@@ -107,52 +107,22 @@ var body: some View {
 
 ## 7. 注释规则
 
-以下对象都要补简短中文注释：
+只在注释能解释以下非显然约束时补充简短中文注释：
 
-- View 本身
-- 每个属性
-- 每个组件块
-- 每个方法
+- 业务规则，例如某个入口受订阅状态、权限或用户选择限制
+- 状态边界，例如状态所有权、不可逆迁移或重复触发保护
+- 异步清理，例如任务取消、观察者释放或过期结果丢弃
+- 生命周期约束，例如前后台切换、`onAppear`、`.task` 或 `deinit` 的处理原因
 
-要求：
-
-- 注释说明职责、意图或边界
-- 保持简短，一般一行即可
-- 不要复述字面代码，例如“设置标题文本”
+不要要求每个 View、属性、组件块或方法都有注释。自解释的名称、标准 SwiftUI 布局和直接赋值不需要注释；不要复述字面代码。
 
 推荐风格：
 
 ```swift
-/// 用户资料页，负责展示基础信息与操作入口。
-struct ProfileView: View {
-    /// 路由能力，用于处理页面跳转。
-    @Environment(AppRouter.self) private var router
-
-    /// 页面标题。
-    let title: String
-
-    /// 控制编辑弹窗是否展示。
-    @State private var isEditing = false
-
-    var body: some View {
-        contentView
-            .navigationTitle(title)
-    }
-
-    /// 页面主体内容。
-    @ViewBuilder
-    private var contentView: some View {
-        VStack(spacing: 16) {
-            profileHeader
-            actionSection
-        }
-        .padding(.horizontal, 20)
-    }
-
-    /// 处理编辑按钮点击。
-    private func handleEditTapped() {
-        isEditing = true
-    }
+/// 认证状态变化后取消旧请求，避免过期结果覆盖当前页面。
+private func resetForIdentityChange() {
+    loadTask?.cancel()
+    loadTask = nil
 }
 ```
 
@@ -174,5 +144,5 @@ public methods 与 private methods 都放在 `body` 后面。
 - 是否优先使用了私有 `@ViewBuilder` 计算属性
 - 叠加布局是否根据 View 之间的职责选择了 `background`、`overlay` 或 `ZStack`
 - 父子视图的 padding 职责是否清晰
-- View、属性、组件、方法是否都有简短中文注释
+- 注释是否只解释非显然的业务规则、状态边界、异步清理或生命周期约束
 - `#Preview` 是否位于文件末尾

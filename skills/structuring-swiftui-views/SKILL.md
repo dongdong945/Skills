@@ -20,7 +20,7 @@ description: Use when 编写、重构或审查 SwiftUI `View` 文件，需要统
 5. 拆分 `body` 时，优先提取成私有 `@ViewBuilder` 计算属性；只有在需要参数、复用局部输入或表达更自然时，再用私有 `@ViewBuilder` 函数。
 6. 让每个组件负责自己的内部 UI 和内部 padding；父视图只负责多个子视图之间的间距、外层排布和容器级 padding。
 7. 组织叠加布局时，优先判断是否应使用 `overlay` 或 `background`；只有多个同级 View 需要共同参与叠放、对齐或布局时才使用 `ZStack`。
-8. 为 View 本身、每个属性、每个组件、每个方法补简短中文注释，只说明职责或意图。
+8. 只在注释能解释非显然的业务规则、状态边界、异步清理或生命周期约束时补充简短中文注释。不要为自解释的 View、属性、组件或方法机械添加注释。
 
 ## 快速检查
 
@@ -30,7 +30,7 @@ description: Use when 编写、重构或审查 SwiftUI `View` 文件，需要统
 - 私有 `@ViewBuilder` 计算属性优先于私有 `@ViewBuilder` 函数。
 - 子组件负责内部 padding，父视图负责子视图之间的 spacing 和外层 padding。
 - 单个 View 的背景、前景装饰或浮层优先使用 `background` / `overlay`；同级内容共同叠放时使用 `ZStack`。
-- View、属性、组件、方法都要有简短中文注释。
+- 注释只解释非显然的业务规则、状态边界、异步清理或生命周期约束；不复述字面代码。
 - `#Preview` 位于文件末尾。
 
 - 优先按既定结构直接整理 View，无需深度推理或额外抽象发散。
