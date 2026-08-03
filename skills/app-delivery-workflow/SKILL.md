@@ -1,13 +1,13 @@
 ---
 name: app-delivery-workflow
-description: Use when starting a new app or substantial feature and the goal is to move from requirements and Figma to an isolated, runnable, validated first slice with parallel UI and business work.
+description: Use when starting a new app or substantial feature and the goal is to move from requirements and Figma to an isolated, runnable, validated first slice with fixed UI, business, and integration worktrees.
 ---
 
 # App Delivery Workflow
 
 Use this workflow to get a new app or substantial feature running early while keeping UI and business work separable. The workflow coordinates existing skills and project rules; it does not replace the project's architecture, product decisions, or specialist implementation skills.
 
-The root agent is the delivery coordinator. It may delegate independent work to a UI specialist, a business/architecture specialist, and a read-only acceptance reviewer when the runtime supports isolated worktrees. Do not make delegated agents recursively create more agents. If parallel execution is unavailable, preserve the same ownership boundaries and run the worktrees sequentially.
+The root agent is the delivery coordinator. Delegate UI implementation to the `ui-implementer` custom agent and business implementation to the `business-implementer` custom agent. Both agents must use `gpt-5.6-sol` with `high` reasoning and must not recursively create more agents. Use `delivery-acceptance` as the read-only final review procedure instead of creating another implementation agent. If either custom agent or isolated worktree support is unavailable, stop and report it rather than silently substituting a general-purpose agent or writing both scopes in one checkout.
 
 This workflow is platform-neutral. Use the project's platform-specific skills and `AGENTS.md` rules for scaffolding, UI implementation, build, Preview, tests, and simulator/device validation.
 
@@ -31,10 +31,11 @@ Before editing:
 
 1. Determine whether this is a new app or an existing app.
 2. Read the applicable `AGENTS.md`, project README, architecture notes, and nearby implementations.
-3. Check Git status, current branch, existing worktrees, branch name collisions, and the target project path.
-4. Confirm the target platform, minimum supported versions, PRD or feature request, Figma URL/node, and the first runnable scope.
-5. Record the base commit used by every worktree. Do not create one worktree from another worktree's uncommitted state.
-6. If the project is dirty, has unresolved conflicts, or the requested scope overlaps unknown work, stop and report it before creating worktrees.
+3. Resolve the main project root, then check Git status, current branch, existing worktrees, branch name collisions, and the target project path.
+4. If the project is dirty, has unresolved conflicts, or the requested scope overlaps unknown work, stop and report it before changing `.gitignore` or creating worktrees.
+5. Ensure the project-root `.gitignore` contains the exact root-relative rule `/.worktrees/`. If it is missing, add it as a small setup task, self-review it, and commit it before creating any worktree.
+6. Confirm the target platform, minimum supported versions, PRD or feature request, Figma URL/node, and the first runnable scope.
+7. Record the resulting base commit used by every worktree. Do not create one worktree from another worktree's uncommitted state.
 
 For an existing app, preserve its conventions. For a new app, first create only the minimum App Shell, navigation entry, and feature structure needed to run the first slice. Verify that shell before splitting UI and business work.
 
@@ -67,7 +68,7 @@ Do not introduce a separate contract system, generic architecture base, or broad
 
 ## 4. Assign runtime roles and create isolated worktrees
 
-Use these responsibilities when delegating:
+Confirm that `ui-implementer` and `business-implementer` are installed with `model = "gpt-5.6-sol"` and `model_reasoning_effort = "high"`. Use these responsibilities when delegating:
 
 ```text
 Root coordinator
@@ -75,11 +76,11 @@ Root coordinator
 - owns the shared agreement and integration worktree
 - reviews specialist results and decides whether to continue
 
-UI specialist
+ui-implementer
 - owns Figma translation, Views, UI-only components, Mock/Preview fixtures,
   UI assets, adaptive layout, and named Preview snapshots
 
-Business/architecture specialist
+business-implementer
 - owns Domain, Data, UseCases, Repositories, DataSources, ViewModels,
   dependency wiring, routing, migrations, and focused business tests
 
@@ -90,27 +91,25 @@ Acceptance reviewer
 - reports missing states, ownership violations, merge risks, and unverified claims
 ```
 
-The UI specialist and business specialist must receive the same base commit and the same lightweight agreement. Each task gets one owner, a file scope, acceptance criteria, and a narrow validation command or tool.
+The two implementation agents must receive the same base commit and lightweight agreement. Each handoff must include the assigned worktree path, branch, one reviewable task, owned files, forbidden files, acceptance criteria, and approved validation tools. The agents operate only inside their assigned worktrees; they do not create, rename, switch, or remove worktrees.
 
-Create separate branches/worktrees from the same verified base:
+Create separate branches/worktrees from the same verified base under the main project root:
 
 ```text
-UI worktree
-- Figma implementation
-- Mock data and Preview fixtures
-- page layout and interaction
-- device adaptation
-- Preview snapshots
-
-Business worktree
-- Domain models
-- UseCases
-- Repository protocols and implementations
-- data sources, persistence, and business tests
+<ProjectRoot>/.worktrees/
+├── ui-implementer/
+├── business-implementer/
+└── integration/
 ```
+
+The directory names are fixed. Branch names remain feature-specific and follow the target project's Git conventions. A fixed path supports one active delivery flow per project at a time.
 
 Rules:
 
+- The root coordinator exclusively creates and manages the three worktrees.
+- Do not create suffixed or temporary alternatives such as `ui-implementer-2`, `business-implementer-temp`, or `integration-new`.
+- Before creation, compare the fixed paths with `git worktree list --porcelain`. If a path exists but is not a registered worktree, stop. If it is registered with a different branch, base, or delivery task, stop.
+- If an existing fixed worktree contains uncommitted changes or unmerged task commits, preserve it and stop; do not clean, reset, reuse, or delete it automatically.
 - Assign file ownership before either worktree edits.
 - The business worktree owns ViewModels, routing, dependency wiring, migrations, and project/build configuration unless the handoff explicitly assigns one of them elsewhere.
 - The UI worktree owns Views, UI-only components, Mock/Preview fixtures, Figma-exported assets, and Preview output.
@@ -118,7 +117,7 @@ Rules:
 - If a platform project requires a shared project manifest or generated group file, assign that file to one owner before work starts; the other worktree adds source files without editing it.
 - Freeze the lightweight shared agreement while parallel work is in progress. Changes to it require a separate, explicit handoff.
 - Use the project's existing branch and commit conventions. Keep each task small enough for manual review.
-- If Git worktrees are unavailable, do not simulate parallel writes in one checkout; run the two owned workstreams sequentially.
+- If Git worktrees are unavailable, do not simulate parallel writes in one checkout.
 
 ## 5. Run the UI work
 
@@ -152,7 +151,7 @@ Do not change the UI layout or add production-only behavior just to make a busin
 
 ## 7. Integrate in one place
 
-After the UI and business tasks have independently completed their small commits, integrate them in the coordinating worktree or branch. Do not merge uncommitted work:
+After the UI and business tasks have independently completed their small commits, integrate them only in `<ProjectRoot>/.worktrees/integration`. Do not merge uncommitted work:
 
 1. Verify the two branches still share the expected base and inspect their diffs.
 2. Integrate business interfaces and implementations first when the UI already uses the agreed protocol.
@@ -161,6 +160,8 @@ After the UI and business tasks have independently completed their small commits
 5. Recheck navigation, state mapping, assets, and project-file changes.
 
 If the merge requires changing the shared agreement or crossing file ownership, stop and report the conflict instead of forcing a resolution. Preserve both branches until the integration diff and validation are accepted.
+
+Do not remove fixed worktrees automatically after delivery. When cleanup is explicitly requested, first verify cleanliness, merged ancestry, and the registered paths, then use `git worktree remove`; never recursively delete `.worktrees/`.
 
 ## 8. Validate the first runnable slice
 
@@ -216,6 +217,9 @@ Stop and report instead of continuing when:
 
 - a core product rule or data contract is unresolved
 - the base worktree contains conflicts or unclear user changes
+- `ui-implementer` or `business-implementer` is missing or not configured for `gpt-5.6-sol` with `high` reasoning
+- the project-root `.gitignore` does not contain `/.worktrees/` and cannot be committed safely
+- a fixed worktree path is unregistered, dirty, attached to another task, or based on an unexpected commit
 - Figma MCP or required project tools are unavailable
 - UI and business changes require the same files without an agreed owner
 - the requested integration would require an unapproved architecture refactor

@@ -1,4 +1,4 @@
 interface:
   display_name: "App 交付流程"
-  short_description: "串联需求、UI、业务和首个可运行切片"
-  default_prompt: "Use $app-delivery-workflow to take this app from requirements to a runnable, validated first slice."
+  short_description: "固定 Agent 与 worktree 串联 App 首个可运行切片"
+  default_prompt: "使用 $app-delivery-workflow 通过固定 UI、业务和集成 worktree 交付这个 App 的首个可运行切片。"
