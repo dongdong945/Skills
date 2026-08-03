@@ -39,10 +39,29 @@ Do not copy the page for each device. Use one adaptive implementation and valida
 
 ### 3. Download and map assets
 
-- Use Figma MCP asset URLs directly when they are provided through `localhost`.
+- Download raster image assets from Figma instead of recreating them locally. Request and keep the `@2x` and `@3x` exports when the Figma MCP or its asset export endpoint supports scale selection. Do not treat a single `1x` download as complete when `@2x` or `@3x` is required by the project.
+- Use the exact Figma-exported asset content and preserve a stable project asset name. Do not generate, redraw, upscale, crop, or replace an unavailable image privately.
+- Use Figma MCP asset URLs directly when they are provided through `localhost`. If the current MCP connection cannot provide the required `@2x` and `@3x` exports, report the missing export capability instead of silently substituting another image.
 - Do not add an icon package when the required asset is already provided by Figma or the project design system.
 - Reuse existing project assets and components where they match.
-- Do not create placeholder image files. If an image is unavailable, use a clearly isolated Mock state and record the missing asset.
+- Do not create placeholder image files, AI-generated images, or privately drawn substitutes. If an image is unavailable, keep the missing asset isolated in the Mock state, record it, and do not mark the asset task complete.
+
+For an iOS asset catalog, place actual Figma-exported image files under a module namespace. Use one of these structures:
+
+```text
+Assets.xcassets/
+└── <Module>/                         # Folder with Namespace
+    ├── <ImageName>@2x.png
+    └── <ImageName>@3x.png
+
+Assets.xcassets/
+└── <Module>/                         # Folder with Namespace
+    └── <Submodule>/                  # Folder with Namespace
+        ├── <ImageName>@2x.png
+        └── <ImageName>@3x.png
+```
+
+The directory must be an Xcode `Folder with Namespace`. Choose either `<Module>/<ImageName>` or `<Module>/<Submodule>/<ImageName>` according to the feature structure. Do not place feature images at the asset catalog root, and do not create image files merely to establish an empty directory.
 
 ### 4. Build with Mock data first
 
@@ -122,6 +141,9 @@ Rules:
 
 - [ ] Figma context and screenshot were fetched before implementation.
 - [ ] Existing project components, tokens, routing, and state conventions were checked.
+- [ ] Required raster assets were downloaded from Figma at `@2x` and `@3x` when applicable.
+- [ ] Assets are stored under a module or submodule `Folder with Namespace`.
+- [ ] No image was generated, redrawn, upscaled, or used as a private placeholder.
 - [ ] The page runs with Mock data without real service dependencies.
 - [ ] Required loading, content, empty, error, and interaction states are covered.
 - [ ] The reference device matches the Figma frame.
@@ -147,7 +169,7 @@ Compare the Figma screenshot and Preview side by side. Check container geometry 
 
 ### Assets do not load
 
-Verify the Figma MCP asset URL and use the returned `localhost` source without rewriting it. If the asset is genuinely unavailable, keep the missing-asset state isolated and report it.
+Verify the Figma MCP asset URL and use the returned `localhost` source without rewriting it. Request the `@2x` and `@3x` exports again if the endpoint supports scale selection. If the asset or required scale is genuinely unavailable, keep the missing-asset state isolated and report it; do not generate a substitute.
 
 ### The project has no design system
 

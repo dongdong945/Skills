@@ -1,9 +1,9 @@
 interface:
   display_name: "Figma Implement Design"
-  short_description: "Build adaptive Figma UI with Mock data and device Previews"
+  short_description: "Build adaptive Figma UI with real assets and device Previews"
   icon_small: "./assets/figma-small.svg"
   icon_large: "./assets/figma.png"
-  default_prompt: "Implement this Figma design with Mock data, validate the reference, compact, and wide devices, and save named Preview snapshots."
+  default_prompt: "Implement this Figma design with Mock data, download required @2x/@3x assets from Figma, validate reference/compact/wide devices, and save named Preview snapshots."
 
 dependencies:
   tools:
