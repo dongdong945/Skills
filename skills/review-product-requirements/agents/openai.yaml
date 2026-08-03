@@ -1,0 +1,4 @@
+interface:
+  display_name: "需求技术评审"
+  short_description: "从开发视角检查产品需求完整性、冲突与准确性"
+  default_prompt: "Use $review-product-requirements to review this product requirement from a developer perspective and report completeness gaps, conflicts, accuracy issues, risks, and confirmation items."
