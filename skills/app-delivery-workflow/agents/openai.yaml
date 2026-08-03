@@ -1,4 +1,4 @@
 interface:
-  display_name: "App Delivery Workflow"
-  short_description: "Coordinate a runnable app delivery workflow"
+  display_name: "App 交付流程"
+  short_description: "串联需求、UI、业务和首个可运行切片"
   default_prompt: "Use $app-delivery-workflow to take this app from requirements to a runnable, validated first slice."
