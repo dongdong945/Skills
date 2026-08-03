@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Delivery Workflow"
+  short_description: "Coordinate a runnable app delivery workflow"
+  default_prompt: "Use $app-delivery-workflow to take this app from requirements to a runnable, validated first slice."
