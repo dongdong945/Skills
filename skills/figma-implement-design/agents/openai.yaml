@@ -1,0 +1,14 @@
+interface:
+  display_name: "Figma Implement Design"
+  short_description: "Build adaptive Figma UI with Mock data and device Previews"
+  icon_small: "./assets/figma-small.svg"
+  icon_large: "./assets/figma.png"
+  default_prompt: "Implement this Figma design with Mock data, validate the reference, compact, and wide devices, and save named Preview snapshots."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "figma"
+      description: "Figma MCP server"
+      transport: "streamable_http"
+      url: "https://mcp.figma.com/mcp"
