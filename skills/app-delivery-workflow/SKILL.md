@@ -84,6 +84,7 @@ Business/architecture specialist
   dependency wiring, routing, migrations, and focused business tests
 
 Acceptance reviewer
+- uses `delivery-acceptance` as the read-only final acceptance procedure
 - reads the final diff and evidence
 - does not edit implementation files
 - reports missing states, ownership violations, merge risks, and unverified claims
@@ -163,7 +164,7 @@ If the merge requires changing the shared agreement or crossing file ownership, 
 
 ## 8. Validate the first runnable slice
 
-Use the project's approved validation tools and `AGENTS.md` rules. At minimum, verify:
+Use `delivery-acceptance` for the read-only final review. Follow the project's approved validation tools and `AGENTS.md` rules. At minimum, verify:
 
 - the app starts or the target feature can be entered
 - the core path navigates correctly
