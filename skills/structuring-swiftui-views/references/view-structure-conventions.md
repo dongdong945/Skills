@@ -25,12 +25,14 @@
 4. `body`
 5. public methods
 6. private methods
-7. `#Preview`
+7. 同文件 private 子 `View`
+8. `#Preview`
 
 要求：
 
 - `@Environment`、`@EnvironmentObject`、`@ScaledMetric` 等环境相关属性放在最前面。
 - public properties 与 private properties 分开组织，不要混排。
+- 同文件 private 子 `View` 放在主 View 实现之后。
 - `#Preview` 永远放在整个文件最后。
 
 ## 3. body 约定
@@ -62,28 +64,45 @@ var body: some View {
 
 不要机械地用 `overlay` 或 `background` 替换所有 `ZStack`。三者在尺寸提议、布局参与方式、命中测试和无障碍语义上可能不同，应以布局职责和交互语义为判断依据。
 
-## 5. 拆分优先级
+## 5. 拆分边界
 
-当 `body` 或某个区块开始变复杂时，按以下优先级拆分：
+根据区块的职责、输入、状态和复杂度选择拆分方式，不要把“计算属性优先”理解为所有区块都应留在父 View 中。
 
-1. 私有 `@ViewBuilder` 计算属性
-2. 私有 `@ViewBuilder` 函数
-
-优先使用计算属性的场景：
+使用私有 `@ViewBuilder` 计算属性的场景：
 
 - 不需要额外入参
 - 语义上是当前 View 的固定组成部分
+- 不维护独立状态，不包含独立生命周期或异步任务
+- 结构较小，不需要独立 Preview
 - 适合作为 `contentView`、`headerView`、`actionSection` 这类命名区块
 
-改用 `@ViewBuilder` 函数的场景：
+使用私有 `@ViewBuilder` 函数的场景：
 
-- 需要显式入参
+- 只需要少量简单入参
 - 同一结构要根据输入生成多个变体
+- 不维护独立状态，不包含独立生命周期或异步任务
+- 仍然是父 View 内部的轻量布局片段
 - 用函数表达比复制多个近似计算属性更自然
+
+提取为独立子 `View` 的场景：
+
+- 需要接收模型、`Binding`、`@Observable` 对象或多个明确输入
+- 维护自己的 `@State`、焦点、手势或交互状态
+- 包含 `.task`、`onAppear`、取消清理或其他生命周期行为
+- 包含复杂条件分支，继续留在父 View 会模糊主结构
+- 需要独立 Preview、单独验证或明确的可复用边界
+- 已经形成一个有清晰名称和 UI 职责的组件
+
+独立子 `View` 的文件位置：
+
+- 只服务当前页面、体积仍小且不需要外部访问时，使用同文件 `private struct`。
+- 被多个页面复用、体积较大、具有独立业务含义或需要单独维护时，移到独立文件。
+- 只传递子 View 真正需要的模型、值、`Binding` 和回调，不要为了省事传入整个父 View 状态。
 
 不要做的事：
 
 - 为了“拆而拆”把每个 `Text`、`Image`、`Button` 都提成独立块
+- 把包含模型、状态、生命周期和复杂分支的大区块长期藏在计算属性或函数中
 - 同时提供一个计算属性版本和一个函数版本来表达同一段 UI
 
 ## 6. padding 职责边界
@@ -141,7 +160,11 @@ public methods 与 private methods 都放在 `body` 后面。
 - `@Environment...` 是否在最前面
 - public properties / private properties 是否分组清晰
 - `body` 是否只保留 `contentView` 和整个 View 级 modifier
-- 是否优先使用了私有 `@ViewBuilder` 计算属性
+- 小型固定区块是否使用了私有 `@ViewBuilder` 计算属性
+- 简单参数化区块是否只在适合时使用私有 `@ViewBuilder` 函数
+- 涉及模型、状态、生命周期、异步、复杂分支或独立 Preview 的区块是否已提取为独立子 `View`
+- 页面私有子 View 与独立文件的选择是否符合复用范围和体积
+- 同文件 private 子 `View` 是否位于主 View 实现之后、`#Preview` 之前
 - 叠加布局是否根据 View 之间的职责选择了 `background`、`overlay` 或 `ZStack`
 - 父子视图的 padding 职责是否清晰
 - 注释是否只解释非显然的业务规则、状态边界、异步清理或生命周期约束
