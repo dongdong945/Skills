@@ -1,0 +1,4 @@
+interface:
+  display_name: "交付验收"
+  short_description: "检查合并后的首个可运行切片、证据与人工确认项并区分交付结论"
+  default_prompt: "Use $delivery-acceptance to review the integrated first runnable slice and report blocking issues, evidence gaps, and human follow-up items."
