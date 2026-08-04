@@ -1,0 +1,4 @@
+interface:
+  display_name: "App 月收入估算"
+  short_description: "基于多源证据估算 App 或 Studio 月收入"
+  default_prompt: "Use $estimate-app-revenue to estimate monthly revenue from this App Store app ID and provide evidence-backed conclusions."
