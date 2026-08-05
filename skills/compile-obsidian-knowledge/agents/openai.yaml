@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理 Obsidian 知识"
+  short_description: "每周整理候选知识，处理重复冲突并晋升稳定结论和更新索引"
+  default_prompt: "使用 $compile-obsidian-knowledge 整理本周候选知识并更新长期知识索引。"
