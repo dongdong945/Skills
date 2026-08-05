@@ -1,0 +1,4 @@
+interface:
+  display_name: "检索 Obsidian 知识"
+  short_description: "在复杂研究、开发、调试与评审前检索并引用个人 Obsidian 知识库"
+  default_prompt: "使用 $consult-obsidian-knowledge 检索与当前任务相关的个人知识。"
