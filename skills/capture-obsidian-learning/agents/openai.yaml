@@ -1,0 +1,4 @@
+interface:
+  display_name: "回写 Obsidian 候选知识"
+  short_description: "在复杂任务结束时筛选并回写已经验证、可以复用且范围明确的候选知识"
+  default_prompt: "使用 $capture-obsidian-learning 将本次任务中已验证且可复用的结论写入候选知识区。"
