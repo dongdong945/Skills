@@ -1,0 +1,4 @@
+interface:
+  display_name: "SwiftUI 小屏适配"
+  short_description: "检查并修正 iPhone SE 小屏布局、完整流程和双设备运行证据"
+  default_prompt: "使用 $adapt-swiftui-compact-screens 检查现有 SwiftUI 流程在 iPhone SE 3 上的关键信息和操作可达性，完成必要适配并复验参考设备。"
