@@ -1,0 +1,4 @@
+interface:
+  display_name: "Figma 与 SwiftUI 视觉复查"
+  short_description: "按指定模块或整个 App 建立设计稿与设备对比，复查并修正 UI"
+  default_prompt: "使用 $review-figma-swiftui 对我指定的模块或整个 App 建立 Figma 与设备截图对比，逐页判断视觉差异，完成授权的修正并更新复验记录。"
