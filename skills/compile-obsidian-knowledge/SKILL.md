@@ -5,7 +5,7 @@ description: 定期整理用户的 Obsidian 知识库，审核 outputs 中的候
 
 # 整理 Obsidian 知识
 
-维护 `/Users/dongdong/Documents/Obsidian Vault` 中从 `outputs/` 到 `wiki/` 的晋升链路。遵守 `system/Knowledge-Boundaries.md` 和 `system/Daily-Loop.md`，不自动提交或推送 Vault。
+维护 `/Users/dongdong/Workspace/Obsidian` 中从 `outputs/` 到 `wiki/` 的晋升链路。遵守 `system/Knowledge-Boundaries.md` 和 `system/Daily-Loop.md`，不自动提交或推送 Vault。
 
 ## 开始前
 

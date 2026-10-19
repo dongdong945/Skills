@@ -5,7 +5,7 @@ description: 在复杂产品研究、需求评审、开发设计、调试、代�
 
 # 检索 Obsidian 知识
 
-从 `/Users/dongdong/Documents/Obsidian Vault` 获取与当前任务相关的个人知识。只读使用 Vault；本 Skill 不新增、修改或删除笔记。
+从 `/Users/dongdong/Workspace/Obsidian` 获取与当前任务相关的个人知识。只读使用 Vault；本 Skill 不新增、修改或删除笔记。
 
 ## 工作流程
 

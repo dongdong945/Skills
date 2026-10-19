@@ -5,7 +5,7 @@ description: 在复杂研究、开发、调试、评审或验证任务结束时�
 
 # 回写 Obsidian 候选知识
 
-把任务产出的可靠经验写入 `/Users/dongdong/Documents/Obsidian Vault/outputs/qa`。只创建候选知识，不直接晋升到 `wiki/`，不自动提交或推送 Vault。
+把任务产出的可靠经验写入 `/Users/dongdong/Workspace/Obsidian/outputs/qa`。只创建候选知识，不直接晋升到 `wiki/`，不自动提交或推送 Vault。
 
 ## 写入门槛
 
