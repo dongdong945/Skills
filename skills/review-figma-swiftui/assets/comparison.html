@@ -17,24 +17,25 @@ figure{margin:0;min-width:0}.image-scroll{max-height:var(--view-height);overflow
 </style>
 </head>
 <body style="--columns:@@COLUMN_COUNT@@">
-<header><div class="wrap"><small>DESIGN / IMPLEMENTATION REVIEW</small><h1>@@TITLE@@</h1><p class="scope">复查范围：@@SCOPE@@</p><p class="metrics">@@COUNTS@@</p><details><summary>证据来源与验证边界</summary><ul>@@BOUNDARIES@@</ul></details></div></header>
+<header><div class="wrap"><small>DESIGN / IMPLEMENTATION REVIEW</small><h1>@@TITLE@@</h1><p class="scope">复查范围：@@SCOPE@@</p><p class="metrics">@@COUNTS@@</p><p class="meta">报告版本：<code>@@REVISION@@</code></p><details><summary>证据来源与验证边界</summary><ul>@@BOUNDARIES@@</ul></details></div></header>
 <nav><div class="wrap controls">
 <input id="search" type="search" placeholder="搜索模块、页面、状态或 key" aria-label="搜索页面">
 <select id="group" aria-label="筛选模块"><option value="">全部模块</option>@@GROUPS@@</select>
 <select id="status" aria-label="筛选复查状态"><option value="">全部复查状态</option>@@STATUSES@@</select>
 <select id="jump" aria-label="定位页面"><option value="">选择页面…</option>@@JUMPS@@</select><button id="go" type="button">跳转</button>
-<label class="check"><input id="full" type="checkbox">展开完整图片</label><button id="reset" type="button">清除筛选</button><span id="count" aria-live="polite"></span>
+<label class="check"><input id="full" type="checkbox">展开完整图片</label><button id="reset" type="button">清除筛选</button><a id="module-link">当前模块链接</a><span id="count" aria-live="polite"></span>
 </div><div class="matrix-scroll"><div class="wrap columns column-headings">@@COLUMNS@@</div></div></nav>
 <main class="wrap">@@ROWS@@<p id="empty" hidden>没有匹配的页面</p><footer>每行是一种页面状态；发现问题、修复与视觉复验分别记录。点击图片放大，页面标题可作为稳定定位链接。</footer></main>
 <dialog id="zoom" aria-label="图片放大"><div class="dialog-head"><span id="caption"></span><div class="dialog-actions"><a id="original" target="_blank" rel="noreferrer">查看原图</a><button id="close" type="button">关闭 / Esc</button></div></div><img id="large" alt="放大查看"></dialog>
 <script>
 const pages=[...document.querySelectorAll('.page')],search=document.querySelector('#search'),group=document.querySelector('#group'),status=document.querySelector('#status'),jump=document.querySelector('#jump'),full=document.querySelector('#full');
-function filter(){let visible=0;const query=search.value.trim().toLowerCase();for(const page of pages){page.hidden=Boolean((query&&!page.dataset.search.toLowerCase().includes(query))||(group.value&&page.dataset.group!==group.value)||(status.value&&page.dataset.status!==status.value));if(!page.hidden)visible++}document.querySelector('#count').textContent=visible+' / '+pages.length+' 个状态';document.querySelector('#empty').hidden=visible!==0}
-function clearFilters(){search.value='';group.value='';status.value='';filter()}
-function locate(id){const target=document.getElementById(id);if(!target)return;clearFilters();requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView({behavior:'instant',block:'start'})))}
-search.addEventListener('input',filter);group.addEventListener('change',filter);status.addEventListener('change',filter);jump.addEventListener('change',()=>locate(jump.value));document.querySelector('#go').addEventListener('click',()=>locate(jump.value));document.querySelector('#reset').addEventListener('click',clearFilters);full.addEventListener('change',()=>document.body.classList.toggle('full-images',full.checked));
+function updateURL(hash){const url=new URL(location.href);if(group.value)url.searchParams.set('module',group.value);else url.searchParams.delete('module');if(hash!==undefined)url.hash=hash;document.querySelector('#module-link').href=url.href;try{history.replaceState(null,'',url.href)}catch(error){/* 本地 file 页面仍保留可复制的链接。 */}}
+function filter(){let visible=0;const query=search.value.trim().toLowerCase();for(const page of pages){page.hidden=Boolean((query&&!page.dataset.search.toLowerCase().includes(query))||(group.value&&page.dataset.group!==group.value)||(status.value&&page.dataset.status!==status.value));if(!page.hidden)visible++}for(const option of jump.options){option.hidden=Boolean(option.value&&group.value&&option.dataset.group!==group.value)}if(jump.selectedOptions[0]?.hidden)jump.value='';document.querySelector('#count').textContent=visible+' / '+pages.length+' 个状态';document.querySelector('#empty').hidden=visible!==0}
+function clearFilters(){search.value='';group.value='';status.value='';filter();updateURL('')}
+function locate(id){const target=document.getElementById(id);if(!target)return;search.value='';status.value='';if(group.value&&group.value!==target.dataset.group)group.value=target.dataset.group;filter();jump.value=id;updateURL(id);requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView({behavior:'instant',block:'start'})))}
+search.addEventListener('input',filter);group.addEventListener('change',()=>{filter();updateURL('')});status.addEventListener('change',filter);jump.addEventListener('change',()=>locate(jump.value));document.querySelector('#go').addEventListener('click',()=>locate(jump.value));document.querySelector('#reset').addEventListener('click',clearFilters);full.addEventListener('change',()=>document.body.classList.toggle('full-images',full.checked));
 const zoom=document.querySelector('#zoom'),large=document.querySelector('#large');document.querySelectorAll('.image-button').forEach(button=>button.addEventListener('click',()=>{const image=button.querySelector('img');large.src=image.src;large.alt=image.alt;document.querySelector('#caption').textContent=image.alt;document.querySelector('#original').href=image.src;zoom.showModal()}));document.querySelector('#close').addEventListener('click',()=>zoom.close());zoom.addEventListener('click',event=>{if(event.target===zoom)zoom.close()});
-const navigation=document.querySelector('nav');new ResizeObserver(()=>document.documentElement.style.setProperty('--nav-offset',Math.ceil(navigation.getBoundingClientRect().height+16)+'px')).observe(navigation);filter();document.body.classList.toggle('full-images',full.checked);if(location.hash)locate(decodeURIComponent(location.hash.slice(1)));
+const navigation=document.querySelector('nav');new ResizeObserver(()=>document.documentElement.style.setProperty('--nav-offset',Math.ceil(navigation.getBoundingClientRect().height+16)+'px')).observe(navigation);group.value=new URL(location.href).searchParams.get('module')||'';filter();document.body.classList.toggle('full-images',full.checked);if(location.hash)locate(decodeURIComponent(location.hash.slice(1)));else updateURL();
 </script>
 </body>
 </html>
