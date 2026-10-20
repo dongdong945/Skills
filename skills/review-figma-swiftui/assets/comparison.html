@@ -10,34 +10,38 @@
 a{color:#375f7c}button,input,select{font:inherit}button,select,summary{cursor:pointer}button,input,select{border:1px solid #d1dbe0;border-radius:6px;padding:7px 10px;background:white;color:var(--ink)}button:focus-visible,a:focus-visible{outline:2px solid #3874b0;outline-offset:3px}
 .wrap{max-width:1600px;margin:auto;padding:0 24px}header{background:white;border-bottom:1px solid var(--line);padding:30px 0 24px}h1{font-size:28px;line-height:1.3;margin:8px 0 12px}.scope,.meta,.note,figcaption,small{color:var(--muted)}.metrics{font-weight:600}details{font-size:12px;max-width:1100px}details ul{padding-left:20px}
 nav{position:sticky;top:0;z-index:5;background:#fffefb;border-bottom:1px solid var(--line);box-shadow:0 3px 10px #18222c08}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.controls input[type=search]{width:210px}select{max-width:260px}.check{font-size:12px;display:flex;align-items:center;gap:4px}#count{margin-left:auto;font-size:12px;color:var(--muted)}
-.matrix-scroll{overflow-x:auto}.columns{display:grid;grid-template-columns:repeat(var(--columns),minmax(240px,1fr));gap:18px}.column-headings{padding-bottom:10px}small{display:block;font-size:11px}.page{margin:28px 0;padding:20px;background:white;border:1px solid var(--line);border-radius:10px;scroll-margin-top:var(--nav-offset);overflow-x:auto}.row-title{display:flex;gap:12px;align-items:center;flex-wrap:wrap}h2{font-size:17px;margin:0}.anchor{color:inherit;text-decoration:none}.anchor:hover{text-decoration:underline}.row-title>a{font-size:12px}.status{font-size:11px;padding:3px 8px;border-radius:12px;background:#eef1f3}.issue,.blocked{background:#fcebe8;color:#9c3b2e}.fixed{background:#fff1d9;color:#946008}.verified{background:#e7f4ed;color:#286747}.meta,.note{font-size:12px;margin:9px 0}.note{margin-bottom:16px}code{font-size:11px}
+.matrix-scroll{overflow-x:auto}.columns{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:18px}.column-headings{padding-bottom:10px}small{display:block;font-size:11px}.page{margin:28px 0;padding:20px;background:white;border:1px solid var(--line);border-radius:10px;scroll-margin-top:var(--nav-offset);overflow-x:auto}.row-title{display:flex;gap:12px;align-items:center;flex-wrap:wrap}h2{font-size:17px;margin:0}.anchor{color:inherit;text-decoration:none}.anchor:hover{text-decoration:underline}.row-title>a{font-size:12px}.status{font-size:11px;padding:3px 8px;border-radius:12px;background:#eef1f3}.issue,.blocked{background:#fcebe8;color:#9c3b2e}.fixed{background:#fff1d9;color:#946008}.verified{background:#e7f4ed;color:#286747}.meta,.note{font-size:12px;margin:9px 0}.note{margin-bottom:16px}code{font-size:11px}
 figure{margin:0;min-width:0}.image-scroll{max-height:var(--view-height);overflow:auto;border:1px solid var(--line);border-radius:6px;background:#eff2f4;scrollbar-width:thin}.image-button{display:block;width:min(100%,var(--logical-width));padding:0;border:0;border-radius:0;margin:auto;background:transparent;cursor:zoom-in}.image-button img{display:block;width:100%;height:auto}figcaption{font-size:10px;text-align:center;padding-top:7px;overflow-wrap:anywhere}.missing{min-height:350px;display:grid;place-items:center;padding:24px;border:1px dashed #c4cfd5;color:var(--muted);text-align:center;border-radius:6px;background:#f8f9fa}.full-images .image-scroll{max-height:none}
 [hidden]{display:none!important}#empty{text-align:center;padding:60px;color:var(--muted)}footer{padding:25px 0;color:var(--muted);font-size:12px}dialog{width:min(96vw,1280px);max-height:94vh;border:0;border-radius:10px;padding:0;background:#eef2f4;box-shadow:0 24px 90px #0006}dialog::backdrop{background:#1b2635d9}.dialog-head{position:sticky;top:0;background:white;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;font-size:12px}#large{display:block;max-width:100%;height:auto;margin:auto}.dialog-actions{display:flex;gap:12px;align-items:center}
 @media(max-width:800px){.wrap{padding-left:14px;padding-right:14px}.page{padding:14px}.columns{gap:12px}#count{margin-left:0}h1{font-size:23px}.controls select{max-width:215px}}@media print{nav{position:static}.controls,dialog{display:none}.page{break-inside:avoid}.image-scroll{max-height:none}}
 </style>
 </head>
-<body style="--columns:@@COLUMN_COUNT@@">
+<body data-reference="@@REFERENCE_ID@@" data-default-device="@@DEFAULT_DEVICE@@">
 <header><div class="wrap"><small>DESIGN / IMPLEMENTATION REVIEW</small><h1>@@TITLE@@</h1><p class="scope">复查范围：@@SCOPE@@</p><p class="metrics">@@COUNTS@@</p><p class="meta">报告版本：<code>@@REVISION@@</code></p><details><summary>证据来源与验证边界</summary><ul>@@BOUNDARIES@@</ul></details></div></header>
 <nav><div class="wrap controls">
 <input id="search" type="search" placeholder="搜索模块、页面、状态或 key" aria-label="搜索页面">
 <select id="group" aria-label="筛选模块"><option value="">全部模块</option>@@GROUPS@@</select>
 <select id="locale" aria-label="筛选语言"><option value="">全部语言</option>@@LOCALES@@</select>
+<select id="device" aria-label="切换设备">@@DEVICES@@</select>
 <select id="status" aria-label="筛选复查状态"><option value="">全部复查状态</option>@@STATUSES@@</select>
 <select id="jump" aria-label="定位页面"><option value="">选择页面…</option>@@JUMPS@@</select><button id="go" type="button">跳转</button>
-<label class="check"><input id="full" type="checkbox">展开完整图片</label><button id="reset" type="button">清除筛选</button><a id="module-link">模块与语言链接</a><span id="count" aria-live="polite"></span>
-</div><div class="matrix-scroll"><div class="wrap columns column-headings">@@COLUMNS@@</div></div></nav>
-<main class="wrap">@@ROWS@@<p id="empty" hidden>没有匹配的页面状态。可清除筛选，或补充所选模块和语言的采样。</p><footer>每行是一种页面状态与语言；筛选仅显示已有采样，不代表该语言完整通过。发现问题、修复与视觉复验分别记录。点击图片放大，页面标题可作为稳定定位链接。</footer></main>
+<label class="check"><input id="full" type="checkbox">展开完整图片</label><button id="reset" type="button">清除筛选</button><a id="module-link">当前筛选链接</a><span id="count" aria-live="polite"></span>
+</div><div class="matrix-scroll"><div class="wrap columns column-headings">@@COLUMNS@@<div id="unknown-device-heading" hidden><strong></strong><small>未纳入此报告</small></div></div></div></nav>
+<main class="wrap">@@ROWS@@<p id="empty" hidden>没有匹配的页面状态。可清除筛选，或补充所选模块和语言的采样。</p><footer>每行固定显示 Figma 参考及所选设备；切换设备不删改证据或缩小复验范围。筛选仅显示已有采样，不代表该语言或设备完整通过。发现问题、修复与视觉复验分别记录。点击图片放大，页面标题保留设备与语言定位。</footer></main>
 <dialog id="zoom" aria-label="图片放大"><div class="dialog-head"><span id="caption"></span><div class="dialog-actions"><a id="original" target="_blank" rel="noreferrer">查看原图</a><button id="close" type="button">关闭 / Esc</button></div></div><img id="large" alt="放大查看"></dialog>
 <script>
-const pages=[...document.querySelectorAll('.page')],search=document.querySelector('#search'),group=document.querySelector('#group'),locale=document.querySelector('#locale'),status=document.querySelector('#status'),jump=document.querySelector('#jump'),full=document.querySelector('#full');
+const pages=[...document.querySelectorAll('.page')],search=document.querySelector('#search'),group=document.querySelector('#group'),locale=document.querySelector('#locale'),device=document.querySelector('#device'),status=document.querySelector('#status'),jump=document.querySelector('#jump'),full=document.querySelector('#full');
 const localeValue=page=>page.dataset.locale||'__unlabeled__';
 function updateURL(hash){
     const url=new URL(location.href);
-    for(const [key,value] of [['module',group.value],['locale',locale.value]]){
-        if(value)url.searchParams.set(key,value);else url.searchParams.delete(key);
+    for(const [key,value] of [['module',group.value],['locale',locale.value],['device',device.value]]){
+        if(value||key==='device')url.searchParams.set(key,value);else url.searchParams.delete(key);
     }
     if(hash!==undefined)url.hash=hash;
     document.querySelector('#module-link').href=url.href;
+    for(const anchor of document.querySelectorAll('.anchor')){
+        const target=new URL(anchor.href);target.searchParams.set('device',device.value);anchor.href=target.href;
+    }
     try{history.replaceState(null,'',url.href)}catch(error){/* 本地 file 页面仍保留可复制的链接。 */}
 }
 function filter(){
@@ -55,7 +59,15 @@ function filter(){
     document.querySelector('#count').textContent=visible+' / '+pages.length+' 个状态';
     document.querySelector('#empty').hidden=visible!==0;
 }
-function clearFilters(){search.value='';group.value='';locale.value='';status.value='';filter();updateURL('')}
+function showDevice(){
+    const known=[...device.options].some(option=>option.value===device.value&&!option.dataset.unknown);
+    for(const cell of document.querySelectorAll('[data-column]'))cell.hidden=cell.dataset.column!==document.body.dataset.reference&&cell.dataset.column!==device.value;
+    const heading=document.querySelector('#unknown-device-heading');heading.hidden=known;heading.querySelector('strong').textContent=device.value;
+    for(const cell of document.querySelectorAll('.unknown-device')){cell.hidden=known;cell.querySelector('figcaption').textContent=device.value;}
+    if(zoom.open)zoom.close();
+}
+function clearFilters(){search.value='';group.value='';locale.value='';status.value='';device.value=document.body.dataset.defaultDevice;showDevice();filter();updateURL('')}
+function scrollToPage(target){requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView({behavior:'instant',block:'start'})))}
 function locate(id){
     const target=document.getElementById(id);
     if(!target)return;
@@ -63,10 +75,11 @@ function locate(id){
     if(group.value&&group.value!==target.dataset.group)group.value=target.dataset.group;
     if(locale.value&&locale.value!==localeValue(target))locale.value=localeValue(target);
     filter();jump.value=id;updateURL(id);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView({behavior:'instant',block:'start'})));
+    scrollToPage(target);
 }
 search.addEventListener('input',filter);
 for(const select of [group,locale])select.addEventListener('change',()=>{filter();updateURL('')});
+device.addEventListener('change',()=>{showDevice();updateURL();const target=document.getElementById(jump.value);if(target&&!target.hidden)scrollToPage(target)});
 status.addEventListener('change',filter);
 jump.addEventListener('change',()=>locate(jump.value));
 document.querySelector('#go').addEventListener('click',()=>locate(jump.value));
@@ -77,13 +90,20 @@ const navigation=document.querySelector('nav');
 new ResizeObserver(()=>document.documentElement.style.setProperty('--nav-offset',Math.ceil(navigation.getBoundingClientRect().height+16)+'px')).observe(navigation);
 const params=new URL(location.href).searchParams;
 group.value=params.get('module')||'';
+const requestedDevice=params.get('device');
+if(requestedDevice!==null){
+    if(![...device.options].some(option=>option.value===requestedDevice)){
+        const option=new Option((requestedDevice||'空设备标识')+'（未纳入清单）',requestedDevice);option.dataset.unknown='true';device.add(option);
+    }
+    device.value=requestedDevice;
+}
 const requestedLocale=params.get('locale')||'';
 if(requestedLocale){
     const matching=[...locale.options].find(option=>option.value===requestedLocale||option.value.toLowerCase()===requestedLocale.replaceAll('_','-').toLowerCase());
     if(matching)locale.value=matching.value;
     else{locale.add(new Option(requestedLocale+'（未采样）',requestedLocale));locale.value=requestedLocale;}
 }
-filter();document.body.classList.toggle('full-images',full.checked);
+showDevice();filter();document.body.classList.toggle('full-images',full.checked);
 const initialTarget=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));
 if(initialTarget&&(!locale.value||locale.value===localeValue(initialTarget)))locate(initialTarget.id);
 else updateURL('');

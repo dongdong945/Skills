@@ -222,10 +222,21 @@ def atomic_write(path, content):
         Path(filename).unlink(missing_ok=True)
 
 
-def cell_html(row, col, labels):
+def default_device(columns):
+    for col in columns[1:]:
+        if re.sub(r"[\s_.-]", "", col["id"]).lower() == "iphone12":
+            return col["id"]
+        match = re.search(r"(?<![a-z0-9])iphone[\s_.-]*12(?![a-z0-9])", col["label"], re.IGNORECASE)
+        if match and not re.match(r"\s*(pro|mini)\b", col["label"][match.end():], re.IGNORECASE):
+            return col["id"]
+    return columns[1]["id"]
+
+
+def cell_html(row, col, labels, visible=True):
     cell = row["cells"][col["id"]]
+    figure = f'<figure data-column="{col["id"]}"' + ('>' if visible else ' hidden>')
     if "missing" in cell:
-        return '<figure><div class="missing">' + escape(cell["missing"]) + '</div><figcaption>' + escape(col["label"]) + '</figcaption></figure>'
+        return figure + '<div class="missing">' + escape(cell["missing"]) + '</div><figcaption>' + escape(col["label"]) + '</figcaption></figure>'
     im = cell["image"]
     width, height = cell.get("viewport", col["viewport"])
     alt = f"{row['title']} · {row['state']} · {col['label']}"
@@ -238,7 +249,7 @@ def cell_html(row, col, labels):
     if cell.get("note"):
         details.append(cell["note"])
     return (
-        f'<figure><div class="image-scroll" style="--logical-width:{width:g}px;--view-height:{height:g}px">'
+        figure + f'<div class="image-scroll" style="--logical-width:{width:g}px;--view-height:{height:g}px">'
         f'<button class="image-button" type="button" aria-label="放大 {escape(alt, quote=True)}">'
         f'<img src="media/{im["name"]}" width="{im["width"]}" height="{im["height"]}" '
         f'alt="{escape(alt, quote=True)}" decoding="async"></button></div>'
@@ -249,11 +260,14 @@ def cell_html(row, col, labels):
 def render(data, blobs):
     rows = []
     labels = data.get("locale_labels", {})
+    reference_id = data["columns"][0]["id"]
+    selected_device = default_device(data["columns"])
+    visible_columns = {reference_id, selected_device}
     for index, row in enumerate(data["rows"], 1):
         key = row["key"]
         tag = row.get("locale", "")
         language = locale_label(tag, labels)
-        anchor = f'?module={quote(row["group"], safe="")}&locale={quote(tag or "__unlabeled__", safe="")}#row-{key}'
+        anchor = f'?module={quote(row["group"], safe="")}&locale={quote(tag or "__unlabeled__", safe="")}&device={selected_device}#row-{key}'
         link = f'<a href="{escape(row["figma_url"], quote=True)}" target="_blank" rel="noreferrer">Figma ↗</a>' if row.get("figma_url") else ""
         search = " ".join(row.get(field, "") for field in ("key", "title", "group", "route", "state", "note")) + " " + language
         rows.append(
@@ -264,7 +278,8 @@ def render(data, blobs):
             f'<p class="meta">{escape(row["group"])} · {escape(row["state"])} · <code>{key}</code>'
             + (" · " + escape(row["route"]) if row.get("route") else "") + " · 语言：" + escape(language) + '</p>'
             f'<p class="note">{escape(row.get("note", ""))}</p><div class="columns">'
-            + "".join(cell_html(row, col, labels) for col in data["columns"]) + '</div></section>'
+            + "".join(cell_html(row, col, labels, col["id"] in visible_columns) for col in data["columns"])
+            + '<figure class="unknown-device" hidden><div class="missing">所选设备未纳入此报告，请补充采样。</div><figcaption></figcaption></figure></div></section>'
         )
     groups = dict.fromkeys(row["group"] for row in data["rows"])
     missing = sum("missing" in cell for row in data["rows"] for cell in row["cells"].values())
@@ -272,10 +287,13 @@ def render(data, blobs):
     replacements = {
         "TITLE": escape(data["title"]), "SCOPE": escape(data["scope"]),
         "REVISION": escape(data.get("report_revision", "未生成")),
-        "COLUMN_COUNT": str(len(data["columns"])),
-        "COUNTS": f'{len(groups)} 个模块 · {len(data["rows"])} 个状态 · {present} 个图像证据 · {len(blobs)} 张不同图片 · {missing} 个缺口',
+        "REFERENCE_ID": reference_id, "DEFAULT_DEVICE": selected_device,
+        "COUNTS": f'完整证据矩阵：{len(groups)} 个模块 · {len(data["rows"])} 个状态 · {present} 个图像证据 · {len(blobs)} 张不同图片 · {missing} 个缺口',
         "BOUNDARIES": "".join('<li>' + escape(note) + '</li>' for note in data["boundaries"]) or '<li>未记录其他验证边界；请按实际证据复查，图片齐全不代表通过。</li>',
-        "COLUMNS": "".join(f'<div><strong>{escape(col["label"])}</strong><small>{col["viewport"][0]:g}×{col["viewport"][1]:g} pt</small></div>' for col in data["columns"]),
+        "COLUMNS": "".join(f'<div data-column="{col["id"]}"' + ('>' if col["id"] in visible_columns else ' hidden>')
+                           + f'<strong>{escape(col["label"])}</strong><small>{col["viewport"][0]:g}×{col["viewport"][1]:g} pt</small></div>' for col in data["columns"]),
+        "DEVICES": "".join(f'<option value="{col["id"]}"' + (' selected' if col["id"] == selected_device else '')
+                           + f'>{escape(col["label"])}</option>' for col in data["columns"][1:]),
         "GROUPS": "".join(f'<option>{escape(group)}</option>' for group in groups),
         "LOCALES": "".join(f'<option value="{escape(tag or "__unlabeled__", quote=True)}">{escape(locale_label(tag, labels))}</option>'
                            for tag in dict.fromkeys(row.get("locale", "") for row in data["rows"])),

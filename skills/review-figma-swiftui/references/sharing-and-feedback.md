@@ -18,7 +18,7 @@
 
 共享的是整个报告发布单元，不是单独 HTML；只需 index.html、manifest.json、media，原始采样 inputs 和本机锁文件无需发布。可以压缩回传或部署到已有内部静态站点，另保存报告版本对应的快照。不要只传截图或把可移动的 latest 地址当作历史证据。
 
-模块入口形如 `/index.html?module=Settings`；语言范围使用 `?module=Settings&locale=zh-Hans`，具体状态使用页面标题上的 `?module=Settings&locale=zh-Hans#row-settings-reminder-selected-zh-Hans`。同事应记录报告版本、模块、语言、key、设备列、问题描述与期望；截图中的点位只是补充定位。
+模块入口形如 `/index.html?module=Settings`；语言与设备范围使用 `?module=Settings&locale=zh-Hans&device=iphone12`，具体状态使用页面标题上的 `?module=Settings&locale=zh-Hans&device=iphone-duo-outer#row-settings-reminder-selected-zh-Hans`。设备切换后链接应绑定实际列 id，同事应记录报告版本、模块、语言、key、设备列、问题描述与期望；截图中的点位只是补充定位。网页每行只显示 Figma 和所选设备，隐藏列仍属于完整证据矩阵。
 
 托管和批注是两件事。Cloudflare Pages 的预览可通过 Access 保护，但官方指出仅启用该预览保护不会同时保护主 `pages.dev` 地址或自定义域名；要核对最终实际分享地址的访问策略。[Cloudflare 预览文档](https://developers.cloudflare.com/pages/configuration/preview-deployments/)
 

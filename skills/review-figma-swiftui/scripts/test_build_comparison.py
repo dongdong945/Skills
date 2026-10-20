@@ -19,7 +19,7 @@ SCRIPT = Path(__file__).with_name("build_comparison.py")
 class ReportParser(HTMLParser):
     def __init__(self, source):
         super().__init__()
-        self.images, self.rows, self.words, self.links = [], [], [], []
+        self.images, self.rows, self.words, self.links, self.figures = [], [], [], [], []
         self.selects, self.active_select, self.active_option = {}, None, None
         self.feed(source)
 
@@ -31,6 +31,8 @@ class ReportParser(HTMLParser):
             self.rows.append(attrs)
         if tag == "a":
             self.links.append(attrs)
+        if tag == "figure":
+            self.figures.append(attrs)
         if tag == "select":
             self.active_select = attrs.get("id")
             self.selects[self.active_select] = []
@@ -279,7 +281,7 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual([(option.get("value"), option["text"]) for option in parsed.selects["locale"]],
                          [("", "全部语言"), ("en", "English (en)"), ("zh-Hans", "简体中文 (zh-Hans)")])
         links = [link["href"] for link in parsed.links if link.get("class") == "anchor"]
-        self.assertEqual(links, ["?module=Settings&locale=en#row-settings-first", "?module=Settings&locale=zh-Hans#row-settings-first-zh-Hans"])
+        self.assertEqual(links, ["?module=Settings&locale=en&device=phone#row-settings-first", "?module=Settings&locale=zh-Hans&device=phone#row-settings-first-zh-Hans"])
         self.assertEqual(json.loads(self.manifest.read_text()), data)
 
     def test_legacy_language_is_unlabeled_and_labels_survive_module_updates(self):
@@ -348,6 +350,47 @@ class ComparisonTests(unittest.TestCase):
         result = subprocess.run([sys.executable, str(SCRIPT), str(self.output.with_name("manifest.json")), "--project-root", str(self.root)], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.snapshot(), before)
+
+    def test_device_picker_defaults_to_iphone12_and_keeps_duo_evidence(self):
+        data = deepcopy(self.base)
+        data["columns"].extend([
+            {"id": "duo-outer", "label": "iPhone Duo · 外屏", "viewport": [466, 678]},
+            {"id": "duo-inner", "label": "iPhone Duo · 内屏", "viewport": [800, 600]},
+            {"id": "iphone12", "label": "iPhone 12", "viewport": [390, 844]},
+        ])
+        cells = data["rows"][0]["cells"]
+        cells["duo-outer"] = {"path": self.image.name, "source": "runtime", "note": "测试元数据，不是设备验收"}
+        cells["duo-inner"] = {"missing": "未执行内屏采样"}
+        cells["iphone12"] = deepcopy(cells["phone"])
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        parsed = ReportParser(self.output.read_text())
+        devices = parsed.selects["device"]
+        self.assertEqual([option["value"] for option in devices], ["phone", "duo-outer", "duo-inner", "iphone12"])
+        self.assertEqual([option["value"] for option in devices if "selected" in option], ["iphone12"])
+        self.assertEqual([figure["data-column"] for figure in parsed.figures if "hidden" not in figure], ["design", "iphone12"])
+        row = self.registry()["rows"][0]
+        self.assertEqual(set(row["cells"]), set(cells))
+        self.assertEqual(row["cells"]["duo-outer"]["note"], cells["duo-outer"]["note"])
+        self.assertEqual(row["cells"]["duo-inner"], cells["duo-inner"])
+
+    def test_legacy_device_label_selects_iphone12_without_renaming_columns(self):
+        data = deepcopy(self.base)
+        data["columns"].append({"id": "reference", "label": "iPhone 12 · iOS 27", "viewport": [390, 844]})
+        data["rows"][0]["cells"]["reference"] = deepcopy(data["rows"][0]["cells"]["phone"])
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual([option["value"] for option in parsed.selects["device"] if "selected" in option], ["reference"])
+        self.assertEqual([column["id"] for column in self.registry()["columns"]], ["design", "phone", "reference"])
+
+    def test_report_without_iphone12_uses_first_declared_device(self):
+        data = deepcopy(self.base)
+        data["columns"].append({"id": "pro", "label": "iPhone 12 Pro", "viewport": [390, 844]})
+        data["rows"][0]["cells"]["pro"] = {"missing": "未采集"}
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual([option["value"] for option in parsed.selects["device"] if "selected" in option], ["phone"])
+        self.assertEqual([figure["data-column"] for figure in parsed.figures if "hidden" not in figure], ["design", "phone"])
+        self.assertEqual(len(self.registry()["columns"]), 3)
 
 
 if __name__ == "__main__":
