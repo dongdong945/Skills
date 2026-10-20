@@ -4,7 +4,7 @@
 
 ## 采样和设备切换
 
-同一个页面、产品状态和语言仍使用原稳定 row key。外屏、内屏及半折布局使用不同的稳定列 id，例如 `iphone-duo-outer`、`iphone-duo-inner`、`iphone-duo-half-fold`；label 明确显示状态，网页设备选择器逐一切换。不要把原有 `iphone12` 列改名为 Duo，也不为设备状态重复建立业务模块。
+同一个页面、产品状态和语言仍使用原稳定 row key。外屏、半折叠及展开使用不同的稳定证据列 id：`iphone-duo-outer`、`iphone-duo-half-fold`、`iphone-duo-inner`（兼容 `duo-` 前缀）。网页将这三列合并为唯一的 iPhone Duo 设备选项；选中后从左到右为 Figma、外屏、半折叠、展开。底层稳定 id 和独立图片保留，不合并成一张图片。不要把原有 `iphone12` 列改名为 Duo，也不为设备状态重复建立业务模块。
 
 `columns[].viewport` 填实际测得的逻辑基准，单张不同尺寸用 `cell.viewport` 覆盖。图片像素尺寸由生成器解码；系统、代码版本和时间分别写入 `os`、`revision`、`captured_at`。在 `cell.note` 记录实际内/外屏、折叠姿态、方向、窗口/Sheet、系统保留区域，以及是否使用预设数据或合成尺寸。没有执行的姿态用 `missing` 与原因保留，不挪用外屏图片。
 
@@ -12,7 +12,9 @@
 {"id": "iphone-duo-outer", "label": "iPhone Duo · 外屏", "viewport": [466, 678]}
 ```
 
-以上尺寸来自一次外屏采样，只用于示例，不能作为 Duo 的固定规格；内屏、半折和窗口尺寸从本次实际证据获取。未采集时不要用猜测尺寸配一张占位图片。
+以上尺寸来自一次外屏采样，只用于示例，不能作为 Duo 的固定规格；内屏、半折和窗口尺寸从本次实际证据获取。未采集时不要用猜测尺寸配一张占位图片。即使清单只有一个 Duo 姿态，网页也展示其余两种状态的文字缺口，标注尺寸待测量；不为显示空缺而虚构清单列或 viewport。缺口数包含这些待采样姿态。若原行 verified 仅覆盖已声明证据，网页按扩大的展示范围显示待复查，原清单 status 保留原有证据范围。
+
+Apple 将半折叠描述为 **partially folded**，例如像书一样弯折的内屏；展开显示内屏，合拢显示外屏。来源：[Strike a pose with adaptive layouts on iPhone Duo](https://developer.apple.com/videos/play/tech-talks/111463/)。本报告采用「外屏 / 半折叠 / 展开」作为简洁栏目名称。
 
 ## 复查重点
 
@@ -24,4 +26,4 @@
 
 项目限定 Xcode MCP 时，缺少折叠、展开、窗口缩放或特定相机能力只停止该项，不通过其他工具绕过。继续可用的采样，在报告 boundaries 和对应 cell 中写明缺口。350 点等合成容器只证明该尺寸的布局；外屏模拟器、合成容器和真实内屏/半折分别交付。
 
-保持现有项目 `output/ui-review/` 的累计清单。只切换网页设备不触发构建、采样或修改验收状态；新增列仍按完整设备矩阵处理缺口。默认展示 iPhone 12，选择 Duo 后左侧 Figma 不变，右侧只展示所选 Duo 列。
+保持现有项目 `output/ui-review/` 的累计清单。只切换网页设备不触发构建、采样或修改验收状态；新增列仍按完整设备矩阵处理缺口。默认展示 iPhone 12，选择 Duo 后左侧 Figma 不变，右侧同时显示三个姿态。旧链接中的 `device=iphone-duo-outer` 等已声明列 id 自动解析到 `device=iphone-duo`，保留模块、语言与页面定位；未知设备不会回退为 Duo。

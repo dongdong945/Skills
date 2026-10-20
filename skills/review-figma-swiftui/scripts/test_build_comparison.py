@@ -365,13 +365,56 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(self.run_cli(data).returncode, 0)
         parsed = ReportParser(self.output.read_text())
         devices = parsed.selects["device"]
-        self.assertEqual([option["value"] for option in devices], ["phone", "duo-outer", "duo-inner", "iphone12"])
+        self.assertEqual([option["value"] for option in devices], ["phone", "iphone-duo", "iphone12"])
+        self.assertEqual(next(option["text"] for option in devices if option["value"] == "iphone-duo"), "iPhone Duo")
         self.assertEqual([option["value"] for option in devices if "selected" in option], ["iphone12"])
         self.assertEqual([figure["data-column"] for figure in parsed.figures if "hidden" not in figure], ["design", "iphone12"])
         row = self.registry()["rows"][0]
         self.assertEqual(set(row["cells"]), set(cells))
         self.assertEqual(row["cells"]["duo-outer"]["note"], cells["duo-outer"]["note"])
         self.assertEqual(row["cells"]["duo-inner"], cells["duo-inner"])
+
+    def test_duo_outer_only_shows_three_poses_without_inventing_evidence(self):
+        data = deepcopy(self.base)
+        data["columns"][1] = {"id": "iphone-duo-outer", "label": "iPhone Duo · 外屏", "viewport": [466, 678]}
+        row = data["rows"][0]
+        row["cells"]["iphone-duo-outer"] = row["cells"].pop("phone")
+        row["status"] = "verified"
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual([(option["value"], option["text"]) for option in parsed.selects["device"]], [("iphone-duo", "iPhone Duo")])
+        self.assertEqual([figure["data-column"] for figure in parsed.figures if "hidden" not in figure],
+                         ["design", "iphone-duo-outer", "iphone-duo-half-fold", "iphone-duo-inner"])
+        self.assertEqual(len(parsed.images), 2)
+        self.assertIn("2 个缺口", "".join(parsed.words))
+        self.assertIn("未采集 · 尺寸待测量", "".join(parsed.words))
+        self.assertEqual(parsed.rows[0]["data-status"], "unreviewed")
+        self.assertEqual(set(self.registry()["rows"][0]["cells"]), {"design", "iphone-duo-outer"})
+        self.assertEqual(self.registry()["rows"][0]["status"], "verified")
+
+    def test_duo_poses_retain_separate_images_in_display_order(self):
+        data = deepcopy(self.base)
+        for name, color in [("inner", "red"), ("outer", "green"), ("half-fold", "blue")]:
+            path = self.root / f"{name}.png"
+            Image.new("RGB", (30, 40), color).save(path)
+            data["columns"].append({"id": f"duo-{name}", "label": f"Duo {name}", "viewport": [30, 40]})
+            data["rows"][0]["cells"][f"duo-{name}"] = {"path": path.name, "source": "runtime"}
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        parsed = ReportParser(self.output.read_text())
+        poses = [figure for figure in parsed.figures if figure.get("data-device") == "iphone-duo"]
+        self.assertEqual([figure["data-column"] for figure in poses], ["duo-outer", "duo-half-fold", "duo-inner"])
+        self.assertEqual(len(parsed.images), 5)
+        self.assertEqual(len({image["src"] for image in parsed.images}), 4)
+        self.assertIn("0 个缺口", "".join(parsed.words))
+        self.assertEqual(len(self.registry()["columns"]), 5)
+
+    def test_duplicate_duo_pose_columns_fail_without_overwriting_evidence(self):
+        data = deepcopy(self.base)
+        for name in ["duo-outer", "iphone-duo-outer"]:
+            data["columns"].append({"id": name, "label": name, "viewport": [466, 678]})
+            data["rows"][0]["cells"][name] = {"path": self.image.name, "source": "runtime"}
+        self.assertEqual(self.run_cli(data).returncode, 2)
+        self.assertFalse(self.output.exists())
 
     def test_legacy_device_label_selects_iphone12_without_renaming_columns(self):
         data = deepcopy(self.base)
