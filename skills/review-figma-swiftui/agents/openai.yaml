@@ -1,4 +1,4 @@
 interface:
   display_name: "Figma 与 SwiftUI 视觉复查"
-  short_description: "按模块累积设计稿与设备对比到项目 output，支持切换和持续复查"
-  default_prompt: "使用 $review-figma-swiftui 对指定模块或整个 App 做视觉复查，保留已有模块并累积更新项目 output/ui-review 中的对比页，完成授权修正和复验。"
+  short_description: "按模块与截图语言筛选设计稿和设备对比，累积到项目 output 持续复查"
+  default_prompt: "使用 $review-figma-swiftui 对指定模块或整个 App 做视觉复查，记录截图语言，保留已有模块与各语言状态并累积更新项目 output/ui-review 中的对比页，完成授权修正和复验。"

@@ -19,7 +19,8 @@ SCRIPT = Path(__file__).with_name("build_comparison.py")
 class ReportParser(HTMLParser):
     def __init__(self, source):
         super().__init__()
-        self.images, self.rows, self.words = [], [], []
+        self.images, self.rows, self.words, self.links = [], [], [], []
+        self.selects, self.active_select, self.active_option = {}, None, None
         self.feed(source)
 
     def handle_starttag(self, tag, attrs):
@@ -28,9 +29,25 @@ class ReportParser(HTMLParser):
             self.images.append(attrs)
         if tag == "section":
             self.rows.append(attrs)
+        if tag == "a":
+            self.links.append(attrs)
+        if tag == "select":
+            self.active_select = attrs.get("id")
+            self.selects[self.active_select] = []
+        if tag == "option" and self.active_select:
+            self.active_option = attrs | {"text": ""}
+            self.selects[self.active_select].append(self.active_option)
+
+    def handle_endtag(self, tag):
+        if tag == "select":
+            self.active_select = None
+        if tag == "option":
+            self.active_option = None
 
     def handle_data(self, value):
         self.words.append(value)
+        if self.active_option is not None:
+            self.active_option["text"] += value
 
 
 class ComparisonTests(unittest.TestCase):
@@ -244,6 +261,93 @@ class ComparisonTests(unittest.TestCase):
             _, error = process.communicate(timeout=20)
             self.assertEqual(process.returncode, 0, error)
         self.assertEqual({row["group"] for row in self.registry()["rows"]}, {"Settings", "History"})
+
+    def test_localized_states_keep_independent_evidence_and_links(self):
+        data = deepcopy(self.base)
+        data["locale_labels"] = {"en": "English", "zh_hans": "简体中文"}
+        data["rows"][0]["locale"] = "EN"
+        chinese = deepcopy(data["rows"][0])
+        chinese.update(key="settings-first-zh-Hans", locale="zh_hans")
+        chinese["cells"]["design"]["locale"] = "en"
+        data["rows"].append(chinese)
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        rows = self.registry()["rows"]
+        self.assertEqual([row["locale"] for row in rows], ["en", "zh-Hans"])
+        self.assertEqual(rows[1]["cells"]["design"]["locale"], "en")
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual([row["data-locale"] for row in parsed.rows], ["en", "zh-Hans"])
+        self.assertEqual([(option.get("value"), option["text"]) for option in parsed.selects["locale"]],
+                         [("", "全部语言"), ("en", "English (en)"), ("zh-Hans", "简体中文 (zh-Hans)")])
+        links = [link["href"] for link in parsed.links if link.get("class") == "anchor"]
+        self.assertEqual(links, ["?module=Settings&locale=en#row-settings-first", "?module=Settings&locale=zh-Hans#row-settings-first-zh-Hans"])
+        self.assertEqual(json.loads(self.manifest.read_text()), data)
+
+    def test_legacy_language_is_unlabeled_and_labels_survive_module_updates(self):
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        legacy = self.registry()["rows"][0]
+        update = deepcopy(self.base)
+        update["locale_labels"] = {"pt_BR": "Português do Brasil"}
+        update["rows"][0].update(key="history-pt-BR", group="History", locale="pt_br")
+        self.assertEqual(self.run_cli(update).returncode, 0)
+        registry = self.registry()
+        self.assertEqual(registry["rows"][0], legacy)
+        self.assertEqual(registry["rows"][1]["locale"], "pt-BR")
+        self.assertEqual(registry["locale_labels"], {"pt-BR": "Português do Brasil"})
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual(parsed.rows[0]["data-locale"], "")
+        self.assertIn({"value": "__unlabeled__", "text": "未标注语言"}, parsed.selects["locale"])
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        self.assertEqual(self.registry()["locale_labels"], registry["locale_labels"])
+        self.assertEqual(self.registry()["rows"][1], registry["rows"][1])
+
+    def test_other_language_cannot_overwrite_existing_state(self):
+        self.base["rows"][0]["locale"] = "en"
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        before = self.snapshot()
+        update = deepcopy(self.base)
+        update["rows"][0]["locale"] = "fr"
+        result = self.run_cli(update)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("另一语言请使用独立 key", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        del update["rows"][0]["locale"]
+        result = self.run_cli(update)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("更新时保留 locale", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_invalid_locales_do_not_change_existing_report(self):
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        before = self.snapshot()
+        variants = []
+        for value in ["", "<script>", ["en", "fr"]]:
+            invalid = deepcopy(self.base)
+            invalid["rows"][0]["locale"] = value
+            variants.append(invalid)
+        invalid = deepcopy(self.base)
+        invalid["rows"][0]["cells"]["phone"]["locale"] = "en<script>"
+        variants.append(invalid)
+        for labels in [["en"], {"en": ""}, {"en_US": "English", "en-us": "Duplicate"}]:
+            invalid = deepcopy(self.base)
+            invalid["locale_labels"] = labels
+            variants.append(invalid)
+        for data in variants:
+            with self.subTest(data=data):
+                self.assertEqual(self.run_cli(data).returncode, 2)
+                self.assertEqual(self.snapshot(), before)
+
+    def test_language_labels_are_escaped_and_rebuild_is_lossless(self):
+        self.base["locale_labels"] = {"en": '<img src="injected"> & English'}
+        self.base["rows"][0]["locale"] = "en"
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual(len(parsed.images), 2)
+        self.assertIn('<img src="injected"> & English (en)', "".join(parsed.words))
+        before = self.snapshot()
+        self.image.unlink()
+        result = subprocess.run([sys.executable, str(SCRIPT), str(self.output.with_name("manifest.json")), "--project-root", str(self.root)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.snapshot(), before)
 
 
 if __name__ == "__main__":

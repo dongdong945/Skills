@@ -46,6 +46,19 @@ def identifier(value, label):
     return value
 
 
+def locale_tag(value, label):
+    value = text(value, label).replace("_", "-")
+    require(re.fullmatch(r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*", value), f"{label} 需要语言标识，如 en、zh-Hans 或 pt-BR")
+    parts = value.split("-")
+    return "-".join(part.lower() if index == 0 else part.title() if len(part) == 4 and part.isalpha()
+                    else part.upper() if len(part) == 2 and part.isalpha() else part.lower()
+                    for index, part in enumerate(parts))
+
+
+def locale_label(tag, labels):
+    return f"{labels[tag]} ({tag})" if tag in labels else tag or "未标注语言"
+
+
 def viewport(value, label):
     require(isinstance(value, list) and len(value) == 2, f"{label} 需要 [width, height]")
     require(all(type(v) in (int, float) and math.isfinite(v) and v > 0 for v in value), f"{label} 尺寸必须为正数")
@@ -62,6 +75,14 @@ def load_manifest(path):
     require(isinstance(boundaries, list), "boundaries 需要字符串数组")
     for note in boundaries:
         text(note, "boundary")
+    labels = data.get("locale_labels", {})
+    require(isinstance(labels, dict), "locale_labels 需要语言标识到显示名称的对象")
+    normalized_labels = {}
+    for tag, label in labels.items():
+        tag = locale_tag(tag, "locale_labels.key")
+        require(tag not in normalized_labels, f"重复语言名称: {tag}")
+        normalized_labels[tag] = text(label, f"locale_labels.{tag}")
+    data["locale_labels"] = normalized_labels
     columns = data.get("columns")
     require(isinstance(columns, list) and len(columns) >= 2, "columns 至少包含参考及一个设备列")
     ids = set()
@@ -85,6 +106,8 @@ def load_manifest(path):
         for field in ("title", "group", "state"):
             row[field] = text(row.get(field), f"{key}.{field}")
         require(row.get("status") in STATUSES, f"{key}.status 无效")
+        if "locale" in row:
+            row["locale"] = locale_tag(row["locale"], f"{key}.locale")
         for field in ("route", "note", "figma_url"):
             if field in row:
                 text(row[field], f"{key}.{field}")
@@ -97,6 +120,8 @@ def load_manifest(path):
             cell = cells[col["id"]]
             label = f"{key}/{col['id']}"
             require(isinstance(cell, dict), f"{label} 需要对象")
+            if "locale" in cell:
+                cell["locale"] = locale_tag(cell["locale"], f"{label}.locale")
             require(("path" in cell) != ("missing" in cell), f"{label} 需要 path 或 missing，不能并存")
             if "missing" in cell:
                 text(cell["missing"], label + ".missing")
@@ -146,6 +171,8 @@ def merge_project(existing, incoming, project_name):
     for row in incoming["rows"]:
         old = rows.get(row["key"])
         require(old is None or old["group"] == row["group"], f"key {row['key']} 已属于其他模块；请使用带模块前缀的稳定 key")
+        require(not old or not old.get("locale") or old["locale"] == row.get("locale"),
+                f"key {row['key']} 已用于 {old.get('locale') if old else ''}；更新时保留 locale，另一语言请使用独立 key")
         rows[row["key"]] = row
     groups = list(dict.fromkeys(row["group"] for row in rows.values()))
     ordered = []
@@ -166,6 +193,7 @@ def merge_project(existing, incoming, project_name):
         "title": existing.get("title", f"{project_name} · UI 视觉复查"),
         "scope": "累积模块：" + "、".join(groups),
         "boundaries": boundaries,
+        "locale_labels": existing.get("locale_labels", {}) | incoming.get("locale_labels", {}),
         "columns": list(columns.values()),
         "rows": ordered,
     }
@@ -194,7 +222,7 @@ def atomic_write(path, content):
         Path(filename).unlink(missing_ok=True)
 
 
-def cell_html(row, col):
+def cell_html(row, col, labels):
     cell = row["cells"][col["id"]]
     if "missing" in cell:
         return '<figure><div class="missing">' + escape(cell["missing"]) + '</div><figcaption>' + escape(col["label"]) + '</figcaption></figure>'
@@ -202,6 +230,7 @@ def cell_html(row, col):
     width, height = cell.get("viewport", col["viewport"])
     alt = f"{row['title']} · {row['state']} · {col['label']}"
     details = [col["label"], SOURCES[cell["source"]], f"{im['width']}×{im['height']} px", f"{width:g}×{height:g} pt"]
+    details.append("语言：" + locale_label(cell.get("locale", row.get("locale", "")), labels))
     for field in ("os", "captured_at"):
         if cell.get(field):
             details.append(cell[field])
@@ -219,19 +248,23 @@ def cell_html(row, col):
 
 def render(data, blobs):
     rows = []
+    labels = data.get("locale_labels", {})
     for index, row in enumerate(data["rows"], 1):
         key = row["key"]
+        tag = row.get("locale", "")
+        language = locale_label(tag, labels)
+        anchor = f'?module={quote(row["group"], safe="")}&locale={quote(tag or "__unlabeled__", safe="")}#row-{key}'
         link = f'<a href="{escape(row["figma_url"], quote=True)}" target="_blank" rel="noreferrer">Figma ↗</a>' if row.get("figma_url") else ""
-        search = " ".join(row.get(field, "") for field in ("key", "title", "group", "route", "state", "note"))
+        search = " ".join(row.get(field, "") for field in ("key", "title", "group", "route", "state", "note")) + " " + language
         rows.append(
             f'<section class="page" id="row-{key}" data-group="{escape(row["group"], quote=True)}" '
-            f'data-status="{row["status"]}" data-search="{escape(search, quote=True)}">'
-            f'<div class="row-title"><h2><a class="anchor" href="?module={quote(row["group"], safe="")}#row-{key}">{index:02d} · {escape(row["title"])}</a></h2>'
+            f'data-locale="{escape(tag, quote=True)}" data-status="{row["status"]}" data-search="{escape(search, quote=True)}">'
+            f'<div class="row-title"><h2><a class="anchor" href="{escape(anchor, quote=True)}">{index:02d} · {escape(row["title"])}</a></h2>'
             f'<span class="status {row["status"]}">{STATUSES[row["status"]]}</span>{link}</div>'
             f'<p class="meta">{escape(row["group"])} · {escape(row["state"])} · <code>{key}</code>'
-            + (" · " + escape(row["route"]) if row.get("route") else "") + '</p>'
+            + (" · " + escape(row["route"]) if row.get("route") else "") + " · 语言：" + escape(language) + '</p>'
             f'<p class="note">{escape(row.get("note", ""))}</p><div class="columns">'
-            + "".join(cell_html(row, col) for col in data["columns"]) + '</div></section>'
+            + "".join(cell_html(row, col, labels) for col in data["columns"]) + '</div></section>'
         )
     groups = dict.fromkeys(row["group"] for row in data["rows"])
     missing = sum("missing" in cell for row in data["rows"] for cell in row["cells"].values())
@@ -244,8 +277,10 @@ def render(data, blobs):
         "BOUNDARIES": "".join('<li>' + escape(note) + '</li>' for note in data["boundaries"]) or '<li>未记录其他验证边界；请按实际证据复查，图片齐全不代表通过。</li>',
         "COLUMNS": "".join(f'<div><strong>{escape(col["label"])}</strong><small>{col["viewport"][0]:g}×{col["viewport"][1]:g} pt</small></div>' for col in data["columns"]),
         "GROUPS": "".join(f'<option>{escape(group)}</option>' for group in groups),
+        "LOCALES": "".join(f'<option value="{escape(tag or "__unlabeled__", quote=True)}">{escape(locale_label(tag, labels))}</option>'
+                           for tag in dict.fromkeys(row.get("locale", "") for row in data["rows"])),
         "STATUSES": "".join(f'<option value="{key}">{label}</option>' for key, label in STATUSES.items()),
-        "JUMPS": "".join(f'<option value="row-{row["key"]}" data-group="{escape(row["group"], quote=True)}">{escape(row["group"] + " · " + row["title"] + " · " + row["state"])}</option>' for row in data["rows"]),
+        "JUMPS": "".join(f'<option value="row-{row["key"]}">{escape(row["group"] + " · " + row["title"] + " · " + row["state"] + " · " + locale_label(row.get("locale", ""), labels))}</option>' for row in data["rows"]),
         "ROWS": "\n".join(rows),
     }
     template = (Path(__file__).resolve().parents[1] / "assets/comparison.html").read_text(encoding="utf-8")

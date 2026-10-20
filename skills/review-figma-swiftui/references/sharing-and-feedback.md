@@ -4,7 +4,7 @@
 
 ## 当前边界与选择
 
-当前报告已支持模块累积、模块/状态链接、报告版本、每图来源和不可变内容摘要。它是纯静态页面，**尚无内置批注编辑、多人存储或“提交批注”服务**。localhost/127.0.0.1 是访问者自己的电脑，不能把该地址直接当作同事的共享地址；localStorage 即使以后用于草稿，也不等于反馈已提交。
+当前报告已支持模块累积、模块/语言/状态链接、报告版本、每图来源和不可变内容摘要。它是纯静态页面，**尚无内置批注编辑、多人存储或“提交批注”服务**。localhost/127.0.0.1 是访问者自己的电脑，不能把该地址直接当作同事的共享地址；localStorage 即使以后用于草稿，也不等于反馈已提交。
 
 | 方式 | 同事如何访问与反馈 | 适合情况 | 尚需完成 |
 | --- | --- | --- | --- |
@@ -18,7 +18,7 @@
 
 共享的是整个报告发布单元，不是单独 HTML；只需 index.html、manifest.json、media，原始采样 inputs 和本机锁文件无需发布。可以压缩回传或部署到已有内部静态站点，另保存报告版本对应的快照。不要只传截图或把可移动的 latest 地址当作历史证据。
 
-模块入口形如 `/index.html?module=Settings`；具体状态使用页面标题上的 `?module=Settings#row-settings-reminder-selected`。同事应记录报告版本、模块、key、设备列、问题描述与期望；截图中的点位只是补充定位。
+模块入口形如 `/index.html?module=Settings`；语言范围使用 `?module=Settings&locale=zh-Hans`，具体状态使用页面标题上的 `?module=Settings&locale=zh-Hans#row-settings-reminder-selected-zh-Hans`。同事应记录报告版本、模块、语言、key、设备列、问题描述与期望；截图中的点位只是补充定位。
 
 托管和批注是两件事。Cloudflare Pages 的预览可通过 Access 保护，但官方指出仅启用该预览保护不会同时保护主 `pages.dev` 地址或自定义域名；要核对最终实际分享地址的访问策略。[Cloudflare 预览文档](https://developers.cloudflare.com/pages/configuration/preview-deployments/)
 

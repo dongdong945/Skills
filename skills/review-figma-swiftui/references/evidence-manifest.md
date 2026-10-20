@@ -11,6 +11,7 @@ UTF-8 JSON；`rows` 的数组顺序就是网页顺序。图片路径相对清单
   "title": "App UI 视觉复查",
   "scope": "Settings 与 History 模块",
   "boundaries": ["使用已提供的历史原生截图；本轮尚未重跑设备交互。"],
+  "locale_labels": {"en": "English", "zh-Hans": "简体中文"},
   "columns": [
     {"id": "design", "label": "Figma 效果图", "viewport": [390, 844]},
     {"id": "reference", "label": "参考设备", "viewport": [390, 844]},
@@ -18,17 +19,18 @@ UTF-8 JSON；`rows` 的数组顺序就是网页顺序。图片路径相对清单
   ],
   "rows": [
     {
-      "key": "settings-reminder-selected",
+      "key": "settings-reminder-selected-zh-Hans",
       "title": "提醒日期 · 选中",
       "group": "Settings",
       "route": "settings/reminder",
       "state": "selected · top",
+      "locale": "zh-Hans",
       "status": "issue",
       "note": "待核对：底部末项是否能完整滚到操作区上方。",
       "figma_url": "https://www.figma.com/design/example?node-id=1-2",
       "cells": {
         "design": {
-          "path": "figma/reminder.png", "source": "figma", "revision": "节点导出版本或日期"
+          "path": "figma/reminder.png", "source": "figma", "locale": "en", "revision": "节点导出版本或日期"
         },
         "reference": {
           "path": "reference/reminder-selected.png", "source": "runtime",
@@ -47,13 +49,18 @@ UTF-8 JSON；`rows` 的数组顺序就是网页顺序。图片路径相对清单
 ### 必填与可选
 
 - 顶层 `title`、`scope`、`columns`、`rows` 必填；`boundaries` 是可选的证据边界字符串数组。
+- 顶层 `locale_labels` 可选，格式为语言标识到显示名称的对象，如 `{"en": "English", "zh-Hans": "简体中文"}`；未提供名称时直接显示语言标识。名称按项目累积，不限制语言种类。
 - 每列 `id` 唯一，`label` 与正数 `[width, height]` 形式的 `viewport` 必填。id 和 row key 使用字母、数字、点、下划线或连字符。
 - 每行 `key` 在项目内唯一，推荐 `<module>-<page>-<state>`；`title`、`group`、`state`、`status`、`cells` 必填。`group` 是稳定模块名，不能用同 key 覆盖另一个模块；分支/步骤放在 route 或 state。`route`、`note`、`figma_url` 可选，稿件链接需对应实际图片节点。
+- 每行 `locale` 可选，表示该状态的目标 UI 语言，使用 `en`、`zh-Hans`、`pt-BR` 等语言标识；下划线和大小写写法会规范化。不同语言使用不同 key，例如 `<module>-<page>-<state>-zh-Hans`。同 key 已声明语言时，不能换成另一语言覆盖；更新时继续明确填写 `locale`。旧清单未提供该字段仍能生成，网页显示“未标注语言”，不自动视为英文。
 - 每行 cells 必须覆盖声明的每一列；实际图片用 `path` 加 `source`，尚无证据用非空 `missing` 原因，二者不能并存。不靠漏字段隐藏未采集设备。
 - `source` 为 `figma`、`runtime`、`preview` 或 `baseline`。`revision`、`os`、`captured_at`、`note` 可选，缺少来源版本时网页显示“版本未记录”，不能凭文件名补造。
+- 单个 cell 可用 `locale` 覆盖行语言，用于英文稿对照中文运行图等情况；未填写时继承 `row.locale`。筛选依据行语言，图片说明保留各自实际语言。`locale` 只记录证据，不会翻译图片或重新运行 App。
 - status 为 `unreviewed`、`issue`、`fixed`、`verified` 或 `blocked`，分别显示待复查、发现问题、已修复待复验、视觉已复验、受阻。`verified` 由人工/实际复验提供；仍有 missing 的行不允许标为 verified。
 
 同一图片可被多个状态引用，脚本会复用输出文件，但状态依然独立。长稿可以用于顶部、底部两个状态；备注说明这是同一整页稿，不表示滚动位置完全一致。动画静态状态、输入 fixture 或历史证据写入对应 cell.note / boundaries，真实计时和手势结果另行记录。
+
+多语言仍是一份参考稿加设备列；每种语言按页面状态增加行，不把语言混作模块或设备。语言下拉框包含已有行语言和实际存在的“未标注语言”，可与模块、状态、搜索组合。缺少某种语言的页面需要按采集范围补充，不复制另一语言的截图来填充，也不把筛选结果当成完整覆盖证明。
 
 ## 生成
 
@@ -104,8 +111,8 @@ python3 <skill-dir>/scripts/build_comparison.py <project-root>/output/ui-review/
 
 ## 网页验收
 
-先生成 A 模块再生成 B，核对 A 的状态和原图仍在；再刷新 A，确认 B 不变。核对列名、模块分组、状态数、缺口数和原图比例；实际操作搜索、模块/状态筛选、定位、重复定位、长图展开、放大和关闭。模块选择写入 `?module=<模块名>`；状态标题提供该模块与 `#row-<key>` 的组合链接，刷新/重新打开后仍可定位。
+先生成 A 模块再生成 B，核对 A 的状态和原图仍在；再刷新 A，确认 B 不变。核对列名、模块分组、状态数、缺口数和原图比例；实际操作搜索、模块/语言/状态筛选、定位、重复定位、长图展开、放大和关闭。选择写入 `?module=<模块名>&locale=<语言标识>`；状态标题同时保留语言及 `#row-<key>`，刷新/重新打开后仍可定位。`locale=__unlabeled__` 选择未标注语言；没有对应采样的语言链接显示空结果，不回退到英文。清除筛选恢复全部语言与旧状态。
 
 脚本完成的是输入完整性和报告生成。它不理解页面的布局、不验证实际设备、不读取源码修复 UI，也不替代视觉复验。浏览器不可用时保留生成物并说明网页交互尚未验证。
 
-维护生成器时运行 `python3 <skill-dir>/scripts/test_build_comparison.py`，覆盖原图不变、列与缺口、损坏输入、累积/刷新、冲突保护、原采样文件消失、重建及并发更新；测试仅写临时目录。
+维护生成器时运行 `python3 <skill-dir>/scripts/test_build_comparison.py`，覆盖原图不变、列与缺口、损坏输入、累积/刷新、冲突保护、原采样文件消失、重建、并发更新及多语言元数据/独立状态/兼容旧清单；测试仅写临时目录。
