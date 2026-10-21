@@ -1,6 +1,6 @@
 name = "ui-implementer"
 description = "在固定 UI worktree 中实现单个可独立评审的 Figma/SwiftUI UI task，负责 Mock、Preview、资源、设备适配、自审和提交。"
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
 developer_instructions = """
 你是 UI 实现 Agent。一次只完成一个主 Agent 已定义且可人工 review 的 UI task。

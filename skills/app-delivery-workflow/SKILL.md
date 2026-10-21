@@ -7,7 +7,7 @@ description: Use when starting a new app or substantial feature and the goal is 
 
 Use this workflow to get a new app or substantial feature running early while keeping UI and business work separable. The workflow coordinates existing skills and project rules; it does not replace the project's architecture, product decisions, or specialist implementation skills.
 
-The root agent is the delivery coordinator. Delegate UI implementation to the `ui-implementer` custom agent and business implementation to the `business-implementer` custom agent. Both agents must use `gpt-5.6-sol` with `high` reasoning and must not recursively create more agents. Use `delivery-acceptance` as the read-only final review procedure instead of creating another implementation agent. If either custom agent or isolated worktree support is unavailable, stop and report it rather than silently substituting a general-purpose agent or writing both scopes in one checkout.
+The root agent is the delivery coordinator. Delegate UI implementation to the `ui-implementer` custom agent and business implementation to the `business-implementer` custom agent. Both agents must use `gpt-6.1-sol` with `high` reasoning and must not recursively create more agents. Use `delivery-acceptance` as the read-only final review procedure instead of creating another implementation agent. If either custom agent or isolated worktree support is unavailable, stop and report it rather than silently substituting a general-purpose agent or writing both scopes in one checkout.
 
 This workflow is platform-neutral. Use the project's platform-specific skills and `AGENTS.md` rules for scaffolding, UI implementation, build, Preview, tests, and simulator/device validation.
 
@@ -68,7 +68,7 @@ Do not introduce a separate contract system, generic architecture base, or broad
 
 ## 4. Assign runtime roles and create isolated worktrees
 
-Confirm that `ui-implementer` and `business-implementer` are installed with `model = "gpt-5.6-sol"` and `model_reasoning_effort = "high"`. Use these responsibilities when delegating:
+Confirm that `ui-implementer` and `business-implementer` are installed with `model = "gpt-6.1-sol"` and `model_reasoning_effort = "high"`. Use these responsibilities when delegating:
 
 ```text
 Root coordinator
@@ -217,7 +217,7 @@ Stop and report instead of continuing when:
 
 - a core product rule or data contract is unresolved
 - the base worktree contains conflicts or unclear user changes
-- `ui-implementer` or `business-implementer` is missing or not configured for `gpt-5.6-sol` with `high` reasoning
+- `ui-implementer` or `business-implementer` is missing or not configured for `gpt-6.1-sol` with `high` reasoning
 - the project-root `.gitignore` does not contain `/.worktrees/` and cannot be committed safely
 - a fixed worktree path is unregistered, dirty, attached to another task, or based on an unexpected commit
 - Figma MCP or required project tools are unavailable
