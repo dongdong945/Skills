@@ -1,6 +1,6 @@
 ---
 name: translation
-description: "按明确的 locale 和 string key 列表翻译 Xcode String Catalog，结合源码上下文、现有术语及语言风格，处理复数、设备差异和占位符；整体任务先用 translation-coordinator。"
+description: "按明确的 target、locale 和 key 列表翻译 Xcode String Catalog 或传统 .strings、.stringsdict、InfoPlist.strings，结合源码上下文、术语及语言风格处理占位符和复数；整体任务先用 translation-coordinator。"
 metadata:
   source: "Apple Xcode 27.1 (27A9275)"
 ---
@@ -17,9 +17,9 @@ metadata:
 
 本文件对应 Xcode 工具要求的 `xcode-integration:translation`。整体任务先读取 [translation-coordinator](../translation-coordinator/SKILL.md)；如需调用 `StringCatalogRead` 验收，也先读取该协调技能以满足工具前置条件，仅执行所需验收步骤。
 
-# String Catalog Translator
+# Localization Resource Translator
 
-Translate a given set of strings in Xcode String Catalogs using specialized MCP tools. These strings are user-facing software strings for apps on Apple platforms — typically short UI text such as button titles, labels, and messages. Translate them as you would for a native app on those platforms. Access String Catalogs **only** through these tools—never write .xcstrings files directly.
+Translate a bounded set of user-facing strings for Apple-platform apps, using the actual target and resource format. For `.xcstrings`, use only the specialized Xcode MCP String Catalog tools; never read or write those files directly. For traditional `.strings`, `.stringsdict` and `InfoPlist.strings`, use authorized file tools as described below. Preserve the original resource format; translation does not imply migration to Catalogs.
 
 Abort if no list of keys was provided, or if no target locale identifier was provided — something went wrong. Do not guess a locale from examples; the target locale must come from your initial instructions.
 
@@ -28,12 +28,21 @@ Abort if no list of keys was provided, or if no target locale identifier was pro
 A specific list of string keys and a target locale identifier have been provided via your initial instructions.
 - Do not fetch additional string keys beyond what you were given
 - Do not translate into any locale other than the one explicitly provided
-- Do not use `LocalizationPlanner` (your coordinator already ran it)
+- Do not use `LocalizationPlanner`; preparation is the coordinator's responsibility, and traditional resource translation does not require this Catalog-creating tool
 - Do not spawn sub-agents of your own
 
 
 
-## Quick Reference
+## Format Requirements
+
+按协调者给出的 target/Bundle、source locale、目标 locale、文件/表及键列表工作；混合工程中主 App 的传统资源与 Widget 的 Catalog 分开处理。缺少实际路径或存在 target/表歧义时先查项目配置，不能拿其他 target 的同名键代替。
+
+- **传统资源读取与写入**：读取源语言和目标语言的对应文件、注释及现有译文，逐条执行下方六步；写入目标语言文件，不改键、其他语言或无关条目。新增缺少的目标文件时沿用项目 `.lproj`、target membership 和资源组织，不自动转换格式。
+- **`.strings` / `InfoPlist.strings`**：保留现有编码、注释及布局，按实际文件格式解析；文本 `.strings` 使用其带引号的键值与分号语法，正确处理双引号、反斜线、换行等转义，不能套用 JSON 或 XML 转义规则。`InfoPlist.strings` 按真实配置中的权限说明、显示名称等键翻译，不发明不存在的权限需求。
+- **`.stringsdict`**：使用与实际 plist 格式匹配的解析/写入方式。XML plist 的文本须正确转义 `&`、`<` 等 XML 字符，避免手工替换导致双重转义；不能套用 Catalog 的“禁止 XML entity”规则。保留类型、`NSStringLocalizedFormatKey`、变量引用、`NSStringFormatSpecTypeKey`、`NSStringFormatValueTypeKey` 及参数位置，按该条目的实际结构处理复数，不强套单一变量名、schema 或所有语言相同分支。
+- **检查与范围**：优先复用项目已有资源检查，确认其覆盖的文件与 locale；补充相应语法/编码检查，解析为字典之前另查重复键。完成后按协调技能的分层验收分别说明资源、明确语言 Bundle 与页面抽查结果。缺少构建/设备能力仅阻塞对应层，不阻止可完成的传统资源翻译，不将资源通过写成全页面验收。
+
+## Quick Reference — Catalog Tools
 
 | Tool | Purpose |
 |------|---------|
@@ -43,12 +52,12 @@ A specific list of string keys and a target locale identifier have been provided
 
 ## Workflow
 
-Skip the `LocalizationPlanner` tool when told to do so.
+Do not call `LocalizationPlanner` inside a translation batch. The tool reference below applies only to `.xcstrings`; traditional resources use the file workflow above.
 
 For each string, **one at a time**, follow these steps in order.
 
 **Step 1: Get source value and context**
-Call `StringCatalogContext` with the target locale. The `sourceValues` field in the response contains the text that must be translated. The rest of the response provides context:
+For `.xcstrings`, call `StringCatalogContext` with the target locale and translate its `sourceValues`; respect `shouldTranslate: false`. For traditional resources, read the source value/plural entry from the assigned source-language file, its comments, corresponding target translations and source usages; respect the project's do-not-translate rules. Gather the same context where available:
 - Developer comments explaining intent
 - Existing translations in other languages
 - Similar strings with their translations (for terminology consistency)
@@ -56,7 +65,7 @@ Call `StringCatalogContext` with the target locale. The `sourceValues` field in 
 - UI appearance hints (button vs. label affects verb/noun choice)
 - Required plural cases for the target locale
 
-**Step 2: Read the source code** at the provided file paths to understand how the string is used. This reveals the developer's intention and helps you choose the right translation (e.g., a verb for buttons, descriptive for labels). For instance, the key "Save" could be a verb (button action → "Speichern") or a noun (a save file → "Spielstand") — only the source code reveals which. Reading the source code is REQUIRED for finding a good translation. If usage data is unavailable, use all the context clues you have so far — developer comments, similar strings, appearance hints, and existing translations in other languages.
+**Step 2: Read the source code** at the provided usage locations, or search the assigned keys and resource-loading helpers for traditional resources, to understand how the string is used. This reveals the developer's intention and helps you choose the right translation (e.g., a verb for buttons, descriptive for labels). For instance, the key "Save" could be a verb (button action → "Speichern") or a noun (a save file → "Spielstand") — only the source code reveals which. Reading the source code is REQUIRED for finding a good translation. Check the actual table/Bundle and dynamic `String` or interpolation path when relevant; a present resource does not prove the caller localizes it. If usage data is unavailable, use all the context clues you have so far — developer comments, similar strings, appearance hints, and existing translations in other languages.
 
 Some UI words are both noun and verb (e.g. "Bookmark", "Archive", "Save"), and the noun is the more common reading, so might be the one you fall back to by default. When the comment, code, or appearance information shows the string is a button or other action control, you **MUST** translate it as a verb, not a noun (or the appropriate part-of-speech according to the target language's style guide). For instance, a "Bookmark" button is the action "add a bookmark", not the object "a bookmark", hence it should be translated as a verb, and reading the source code and the appearance info gives you clarity over its usage.
 Give both labels of a toggle (e.g. the two sides of a ternary) the same part of speech — never one as a verb and the other as a noun.
@@ -85,22 +94,24 @@ Consider:
 - **Format specifiers**: Understand what each specifier represents by reading the source code (e.g., `%lld` might be a count of items, files, or users).
 
 **Step 5: Determine if variation is needed**
-Check whether the translation needs plural variation, device variation, or both.
+Check whether the translation needs plural variation, device variation, or both. The following Catalog tool/reference instructions apply only to `.xcstrings`:
 
 - **Plural**: If the string contains a numeric format specifier (`%lld`, `%d`, `%u`, etc.) paired with a countable noun, read [references/plural-variations.md](./references/plural-variations.md) (resolve it relative to the skill's base directory). The context tool provides `relevantPluralCases` for your target locale—use all of them.
     - If the context tool also returned `sourcePluralCasesToAdd`, the source itself isn't plural-varied yet. Vary the source first in a separate `StringCatalogEdit` call before translating the target — [references/plural-variations.md](./references/plural-variations.md) walks through this two-step flow.
 - **Device**: If the string references a device-specific interaction (tap vs. click) or mentions a device by name, read [references/device-variations.md](./references/device-variations.md) (resolve it relative to the skill's base directory)
 - **Both**: A string can need both — for example, "Tap to launch %lld spaceships" differs by device AND has a countable noun. Combine device and plural keys (e.g., `device.iphone.plural.one`), but keep `device.other` as a flat fallback string that covers both variations
 
+For traditional resources, preserve and translate the actual plural entries, matching variable references and format value types. Check the required categories for the target locale using project guidance or verified locale rules, including a usable `other` branch where the plural rule requires it; do not copy source-language categories blindly. Numeric text alone does not authorize changing application logic or adding a new lookup mechanism. Record any required source/call-site change outside the assigned batch rather than silently inventing it. Catalog device-variation trees and `%arg` tool templates are not `.stringsdict` syntax.
+
 **Step 6: Insert translation**
-Call `StringCatalogEdit` with the appropriate translation type. Translate the **source value** from `sourceValues` in Step 1 with the context you gathered. If the string is a String Set (marked `isStringSet: true` in context), provide natural alternatives in the target language using the `stringSetTranslation` parameter — these are **not** 1:1 translations but synonyms that express similar intent. For example, English `["order food in ${applicationName}", "get food in ${applicationName}"]` → German `["Essen bestellen in ${applicationName}", "Essen holen auf ${applicationName}"]`. Continue to the next string.
+For traditional resources, write the translation with format-appropriate escaping to the assigned target file, then parse/lint the result and compare the requested entries, placeholders and plural references with the source. For `.xcstrings`, call `StringCatalogEdit` with the appropriate translation type. Translate the **source value** from `sourceValues` in Step 1 with the context you gathered. If the string is a String Set (marked `isStringSet: true` in context), provide natural alternatives in the target language using the `stringSetTranslation` parameter — these are **not** 1:1 translations but synonyms that express similar intent. For example, English `["order food in ${applicationName}", "get food in ${applicationName}"]` → German `["Essen bestellen in ${applicationName}", "Essen holen auf ${applicationName}"]`. Continue to the next string.
 
 **Repeat these 6 steps until all requested strings are translated.**
 
 Do not rush and cut corners; follow these 6 steps exactly for every string requested.
 
 
-# Tool Reference
+# Tool Reference — `.xcstrings` Only
 ## StringCatalogContext
 
 Returns context and the source language value for a given string. The `sourceValues` field contains the text that must be translated. Also includes comments, translations for other languages if present, and relevant plural case hints for the target locale if applicable. Curly apostrophes and quotes are escaped (e.g., \\u2019 for curly apostrophe, \\u201C for curly quote).
@@ -472,14 +483,14 @@ A key can appear in multiple state buckets if variants have different states.
 4. **Make explicit choices about translation style**—a well-translated app has consistent style throughout. Always read the target locale's style guide when one exists and use it as the baseline; explicit instructions and existing translations take precedence over it wherever they apply.
 5. **Keep app names consistent**—when you translate them once, make sure to translate them everywhere.
 6. **Complete the entire task**—continue until all requested translations are done.
-7. **Use typographically correct quotes and apostrophes** for the target language (e.g., „...“ for German, «...» for French). All curly quotes must be escaped (e.g., \\u201E...\\u201C for German „...“), as well as apostrophes (e.g. \\u2019 for curly apostrophe). NEVER XML-escape the ampersand: write a literal `&`, NOT `&amp;`. The same goes for all other HTML/XML entities — never write `&lt;`, `&gt;`, `&quot;`, or `&apos;`; write the literal `<`, `>`, `"`, `'` characters instead. The String Catalog stores Unicode text, not XML, so any `&amp;` would ship verbatim into the app. Other non-ascii characters do not need extra escaping either. DO NOT blindly escape everything.
+7. **Use typographically correct quotes and apostrophes**, with escaping suited to the resource. For Catalog tool parameters, follow the current transport protocol for quotes/Unicode and use literal `&`, `<`, `>` rather than HTML/XML entities; Catalog text is not XML. This restriction does **not** apply to XML `.stringsdict`: follow Format Requirements for XML escaping, and use `.strings` syntax for traditional string tables. Do not blindly escape everything.
 8. Do NOT skip steps to save time, even when there are hundreds of strings. Each step exists to prevent translation errors that are harder to find and fix later. This process takes time, and that's ok. Don't skip work or cut corners to save time, rather focus on accuracy and completeness.
-9. **Use the exact locale identifier from your instructions** as the `targetLocaleIdentifier` in every tool call. Do NOT normalize, canonicalize, or expand it (e.g., if told `zh-TW`, use `zh-TW` — never `zh-Hant-TW`; if told `pt-BR`, use `pt-BR` — never `pt-Latn-BR`). The String Catalog uses these identifiers as-is, and mismatches will cause translations to be stored under the wrong locale.
+9. **Use the exact locale identifier from your instructions** as the `targetLocaleIdentifier` in every tool call. Do NOT normalize, canonicalize, or expand it (e.g., if told `zh-TW`, use `zh-TW` — never `zh-Hant-TW`; if told `pt-BR`, use `pt-BR` — never `pt-Latn-BR`). The String Catalog uses these identifiers as-is, and mismatches will cause translations to be stored under the wrong locale. For traditional resources, use the assigned locale and its verified project file mapping; do not rename `.lproj` directories or invent locale mappings.
 
 
-### Example
+### Catalog Example
 
-For each string key:
+For each Catalog string key:
 
 1. Agent calls `StringCatalogContext` to get the source value, developer comments, similar strings, code locations, and plural cases.
 2. Agent reads the source code at the provided file paths to understand how the string is used (verb vs. noun, button vs. label).
@@ -487,3 +498,7 @@ For each string key:
 4. Agent formulates the translation, considering terminology consistency, tone, app names, and format specifiers.
 5. Agent determines whether variation is needed: plural variation (format specifiers + countable nouns), device variation (interaction verbs or device names + multiple `supportedDevices`), or both.
 6. Agent calls `StringCatalogEdit` to insert the translation for the requested target language.
+
+### Traditional Resource Example
+
+对于主 App 中明确的 `ja` 批次：读取指定 source `.lproj` 与 `ja.lproj` 中的对应表，逐键查源码和已有术语，翻译普通值、真实复数分支及请求内的权限说明，再用文件工具写回原格式。运行适用的资源检查；若具备所需 Xcode MCP 能力，补明确 `ja` Bundle 的缺失哨兵查找和相关页面抽查。Widget 的 `.xcstrings` 另用 Catalog 工具，不因主 App 使用旧资源而停止整个任务，也不调用 Planner 迁移它。
