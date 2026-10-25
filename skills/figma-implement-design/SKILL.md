@@ -12,6 +12,7 @@ Use this workflow to turn one Figma page or component into project-native UI. Th
 - Figma MCP is connected and accessible.
 - The user provides a Figma URL with a node ID, or selects a node through `figma-desktop` MCP.
 - Read the project's `AGENTS.md`, existing design system, navigation, state, Preview, and resource conventions before editing.
+- Follow the current Figma tool protocol and any required prerequisite skills; the tool names below describe the intended operations, not a substitute for capability discovery.
 - If the project defines an approved build or Preview tool, follow that rule. Do not substitute another build or Preview tool.
 
 ## Required workflow
@@ -22,11 +23,8 @@ Follow these steps in order.
 
 1. Parse the Figma URL into `fileKey` and `nodeId`. For `figma-desktop`, use the selected node.
 2. Treat the supplied Figma frame as the reference viewport. Record its width, height, safe-area assumptions, and visible states.
-3. Define the minimum Preview matrix:
-   - Reference: the device represented by the Figma frame, normally iPhone 12 for this workflow.
-   - Compact: an iPhone SE-class device.
-   - Wide: an iPhone Pro Max-class device, normally iPhone 17 Pro Max when available.
-4. Use the project's available simulator/device names. Keep device labels stable and human-readable; do not use UDIDs as output folder names.
+3. Follow the user's explicit device scope. When no scope is specified, suggest a reference device matching the Figma frame, a compact device, and a wider device; choose actual available destinations without requiring a particular model or Pro Max.
+4. Record the agreed matrix using the project's available simulator/device names. Keep device labels stable and human-readable; do not use UDIDs as output folder names.
 
 Do not copy the page for each device. Use one adaptive implementation and validate it against the matrix.
 
@@ -46,22 +44,28 @@ Do not copy the page for each device. Use one adaptive implementation and valida
 - Reuse existing project assets and components where they match.
 - Do not create placeholder image files, AI-generated images, or privately drawn substitutes. If an image is unavailable, keep the missing asset isolated in the Mock state, record it, and do not mark the asset task complete.
 
-For an iOS asset catalog, place actual Figma-exported image files under a module namespace. Use one of these structures:
+For new iOS asset catalog resources, first confirm the catalog's target membership, existing namespace, asset name, and reference convention. Reuse suitable existing resources without relocating them to enforce this structure. Add actual Figma-exported image files in an image set under a module namespace:
 
 ```text
 Assets.xcassets/
 └── <Module>/                         # Folder with Namespace
-    ├── <ImageName>@2x.png
-    └── <ImageName>@3x.png
-
-Assets.xcassets/
-└── <Module>/                         # Folder with Namespace
-    └── <Submodule>/                  # Folder with Namespace
+    ├── Contents.json                 # properties.provides-namespace: true
+    └── <ImageName>.imageset/
+        ├── Contents.json             # maps real files to the 2x and 3x scales
         ├── <ImageName>@2x.png
         └── <ImageName>@3x.png
 ```
 
-The directory must be an Xcode `Folder with Namespace`. Choose either `<Module>/<ImageName>` or `<Module>/<Submodule>/<ImageName>` according to the feature structure. Do not place feature images at the asset catalog root, and do not create image files merely to establish an empty directory.
+If the feature needs a submodule, insert `<Submodule>/` between the module and image set; give it its own `Contents.json` with `properties.provides-namespace` set to `true`. A namespace folder's configuration includes:
+
+```json
+{
+  "info": { "author": "xcode", "version": 1 },
+  "properties": { "provides-namespace": true }
+}
+```
+
+Use the resulting namespaced reference, such as `<Module>/<ImageName>` or `<Module>/<Submodule>/<ImageName>`, according to the project's convention. Loose PNG files directly inside a namespace folder do not replace an `.imageset`. Create only necessary directories and real resources. Verify the asset reference compiles, then separately verify the image is actually visible in Preview or at runtime; generated resource symbols alone do not establish visibility.
 
 ### 4. Build with Mock data first
 
@@ -90,7 +94,7 @@ Use the Figma measurements to derive layout rules rather than copying a single v
 - Do not use `UIScreen.main.bounds` as the primary layout strategy.
 - Do not solve overflow by blindly clipping content.
 
-After matching the reference device, validate the compact and wide devices. Fix the layout rule, not a device-specific copy of the View.
+After matching the reference device, validate the remaining devices in the agreed matrix. Fix the shared layout rule instead of making a device-specific copy of the View. If an existing page needs a focused compact-screen pass, use `adapt-swiftui-compact-screens` when available.
 
 ### 6. Translate to project conventions
 
@@ -104,28 +108,24 @@ After matching the reference device, validate the compact and wide devices. Fix 
 
 Repeat this loop until the page meets the acceptance criteria:
 
-1. Render the reference Preview.
+1. Render an agreed device/state Preview, starting with the reference device when it is in scope.
 2. Compare it with the Figma screenshot for layout, typography, colors, assets, and interaction states.
-3. Render the compact and wide Previews.
+3. Render the remaining Previews in the agreed matrix.
 4. Check text wrapping, image proportions, safe areas, scrolling, and control overlap.
 5. Fix the shared layout or component rule.
 6. Re-render all affected devices and states.
+
+Follow the current project's build, Preview, and device tool rules. Confirm each Preview's actual destination. If the tool cannot select the required destination, crashes, or fails to produce a valid result, record that Preview as incomplete; another device's render cannot satisfy it. When permitted native runtime tools are available, continue the affected checks there and label the evidence as runtime rather than Preview. Missing capabilities stop only the affected operation; continue independent implementation and validation work.
 
 ### 8. Save Preview snapshots
 
 Store Preview validation screenshots outside `Assets.xcassets` and source code. Unless the project defines another output root, use:
 
 ```text
-Docs/Preview/
-├── iPhone-12/
-│   └── <Module>/
-│       └── <ViewName>.png
-├── iPhone-SE/
-│   └── <Module>/
-│       └── <ViewName>.png
-└── iPhone-17-Pro-Max/
+output/preview/
+└── <Device>/
     └── <Module>/
-        └── <ViewName>.png
+        └── <ViewName[-state]>.png
 ```
 
 Rules:
@@ -136,21 +136,24 @@ Rules:
 - When one View has multiple states, add only a state suffix, such as `WelcomeView-loading.png` or `WelcomeView-error.png`.
 - Keep the same naming scheme across all devices so screenshots can be compared directly.
 - Do not put screenshots or placeholder files into `Assets.xcassets`.
+- Follow project output conventions first; do not require migration of historical artifacts.
+
+For a visual review or comparison report, use `review-figma-swiftui` when available and join its cumulative `output/ui-review` evidence flow. Do not create a separate `Docs/Preview` report tree or copy the review protocol into this workflow.
 
 ## Acceptance checklist
 
 - [ ] Figma context and screenshot were fetched before implementation.
 - [ ] Existing project components, tokens, routing, and state conventions were checked.
 - [ ] Required raster assets were downloaded from Figma at `@2x` and `@3x` when applicable.
-- [ ] Assets are stored under a module or submodule `Folder with Namespace`.
+- [ ] New images use `.imageset` directories under module or submodule namespace folders whose `Contents.json` sets `properties.provides-namespace` to `true`; suitable existing resources were reused.
+- [ ] Asset target membership and references were checked; compilation and actual Preview or runtime visibility were verified separately.
 - [ ] No image was generated, redrawn, upscaled, or used as a private placeholder.
 - [ ] The page runs with Mock data without real service dependencies.
 - [ ] Required loading, content, empty, error, and interaction states are covered.
-- [ ] The reference device matches the Figma frame.
-- [ ] Compact and wide devices have been rendered and checked.
+- [ ] The actual destinations in the agreed device matrix were rendered and checked; incomplete Previews and any runtime evidence are identified separately.
 - [ ] No device-specific copy of the page was created.
 - [ ] Text, images, controls, and safe areas do not overlap or overflow.
-- [ ] Preview snapshots are stored under device/module folders with View-based names.
+- [ ] Preview snapshots follow the project output convention, defaulting to `output/preview/<Device>/<Module>/<ViewName[-state]>.png`.
 - [ ] Remaining visual deviations and unavailable assets are reported for human review.
 
 ## Common issues

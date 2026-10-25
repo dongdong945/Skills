@@ -3,7 +3,7 @@ interface:
   short_description: "Build adaptive Figma UI with real assets and device Previews"
   icon_small: "./assets/figma-small.svg"
   icon_large: "./assets/figma.png"
-  default_prompt: "Implement this Figma design with Mock data, download required @2x/@3x assets from Figma, validate reference/compact/wide devices, and save named Preview snapshots."
+  default_prompt: "Use $figma-implement-design to implement this Figma design with Mock data and real assets, validate the requested device matrix, and save named Preview snapshots."
 
 dependencies:
   tools:
