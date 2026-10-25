@@ -21,6 +21,8 @@ GeometryReader { proxy in
 
 700pt 不适用于任意高度 Sheet、键盘抬升区、iPad 或横屏。转场临时改变 proposal、但页面不应中途切换构图时，可让分类在本次展示周期稳定；不要持久化设备布局类别。
 
+Duo 的短高度和较大总宽度不能直接代表内容预算。先按项目的区域容器确定实际无阻挡可读区域，再使用其中的宽高布局；折叠、展开或窗口实际改变尺寸时重新计算，保留同一页面的输入与进度，不把转场期间的临时分类锁定延续到真实窗口变化。端点截图只证明对应姿态的渲染，状态保持需要连续操作验证。
+
 ## 正文、底栏与导航
 
 选择方案取决于实际几何与页面设计：
@@ -47,7 +49,9 @@ GeometryReader { proxy in
 
 以下是已验证模式的来源线索，不是要求下次直接修改同名文件。实际路径、实现及证据需重新读取。
 
-- STAR301，提交 `956b616`、`5cc4343`：`Docs/OnboardingComparison/audit.md`、`Docs/Onboarding-Design-Changes.md`；前者记录 iPhone 12 / SE3 的完整对比、末项点击与证据边界。
+- STAR301，提交 `956b616`、`5cc4343` 的历史记录现位于 `output/verification/legacy-docs/OnboardingComparison/audit.md`、`Docs/Plans/Onboarding-Design-Changes.md`；前者是本地归档，后者保留 iPhone 12 / SE3 对比、交互及证据边界。归档缺失时先查持久文档或对应历史提交，不把无法读取的截图视为已复核。
 - STAR301：`App/Presentation/Features/Onboarding/Views/OnboardingFlowView.swift` 的根层分类；`Components/OnboardingContinueButton.swift` 的正文/底栏分配；`Views/StepViews/OnboardingHuntObjectsView.swift` 的渐变覆盖方案。后两条相对同一个 Onboarding 目录。
-- STAR112：`App/Presentation/Features/Onboarding/Components/OnboardingQuestionChoiceComponents.swift` 与 `Views/StepViews/OnboardingPlanCommitmentView.swift`，分别参考选择页滚动和承诺页紧凑布局，读取时确认是否已有更新。
+- STAR301：`Docs/Plans/Verification/Settings-2026-10-23.md`、`Mission-Implementation-2026-10-23.md` 分别记录文字与开关占宽、正文错误层的返回可达性；后者相对同一个 Verification 目录。
+- STAR301：`Docs/Plans/Verification/Insights-UI-Self-Review-2026-10-24.md`、`PreQA-Fixes-2026-10-25.md` 分别记录临时宿主缺少正式区域约束、有效滚动视口与局部手势锚定；后者相对同一个 Verification 目录。`Docs/Plans/iPhone-Duo-Adaptation.md` 记录实际可读区域与动态窗口方案，其旧采样范围不代表当前完整验收。
+- STAR112：`App/Presentation/Features/Onboarding/Components/OnboardingQuestionChoiceComponents.swift` 与 `App/Presentation/Features/Onboarding/Views/StepViews/OnboardingPlanCommitmentView.swift`，分别参考选择页滚动和承诺页紧凑布局，读取时确认是否已有更新。
 - Obsidian：`wiki/playbooks/STAR-SwiftUI-Compact-Screen-Adaptation.md`、`wiki/concepts/SwiftUI-Safe-Area-Layout.md`，分别说明 STAR 约定与自定义 Flow 的安全区验收边界。知识库不可用时仍可根据当前源码与运行证据完成任务。
