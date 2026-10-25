@@ -23,6 +23,8 @@ Do not start parallel implementation until the following are known or explicitly
 - business contract, when real business behavior is in scope
 - device matrix and validation tools
 
+Use the user's explicit device, OS, and posture scope. When no matrix is specified, recommend reference, compact, and wide coverage based on the layout risk; do not automatically add a third device to an explicitly bounded request.
+
 An unresolved core rule, missing external contract, unavailable required tool, or unclear file owner is a stop condition, not an implementation detail to guess.
 
 ## 1. Start with project and scope checks
@@ -126,7 +128,7 @@ Use `figma-implement-design` for each independent page or UI task. The UI work m
 - fetch Figma context and screenshot before implementation
 - use Mock data behind the expected input or UseCase shape
 - cover the required page states
-- validate the Figma reference device plus compact and wide devices
+- validate the agreed device, OS, and posture matrix
 - download real Figma assets at the required scales
 - place assets under the project's module or submodule namespace rules
 - never generate private image substitutes or placeholder image files
@@ -134,7 +136,9 @@ Use `figma-implement-design` for each independent page or UI task. The UI work m
 
 The UI must remain runnable with Mock data through the same input shape or UseCase protocol expected after integration. Do not wait for real networking or database code before proving the page flow.
 
-For iOS/SwiftUI projects, follow `figma-implement-design` for the reference, compact, and wide device matrix and store snapshots under the device/module/View naming scheme (for example `Docs/Preview/<Device>/<Module>/<ViewName>.png`). Do not copy the View for each device. Keep unavailable assets isolated and reported for human follow-up.
+Mock data or an in-memory store does not isolate system dependencies. Trace the scenario's dependency wiring and replace the relevant side effects, such as alarm scheduling, notifications/permission requests, payments, or event sending, with controlled substitutes. Keep QA/demo entry points explicit and Debug-only, with production wiring as the default. This isolation proves the agreed scenario; record real external-system acceptance separately rather than requiring every external integration for the first slice.
+
+For iOS/SwiftUI projects, follow `figma-implement-design` within the agreed device matrix and store snapshots under the project's artifact-directory and device/module/View naming rules; when unspecified, use `output/preview/<Device>/<Module>/<ViewName>.png`. Do not copy the View for each device. Keep unavailable assets isolated and reported for human follow-up.
 
 ## 6. Run the business work
 
@@ -170,12 +174,14 @@ Use `delivery-acceptance` for the read-only final review. Follow the project's a
 - the app starts or the target feature can be entered
 - the core path navigates correctly
 - Mock or real dependencies produce the expected states
-- compact and wide device layouts do not overlap or overflow
-- Preview snapshots are present and named consistently
+- layouts in the agreed device and posture matrix do not overlap or overflow
+- required Preview or runtime evidence is present and named consistently, with incomplete Preview operations identified separately
 - focused tests or static checks cover the changed business behavior
 - remaining visual deviations and unverified runtime behavior are recorded
 
 Keep build success, Preview success, tests, simulator interaction, and real-device validation as separate evidence. Do not claim a stronger result than the tool actually verified.
+
+If QA/demo wiring or entry points changed, recheck the affected production entry and routing without QA launch arguments or environment variables, using the narrowest relevant scope. A QA scenario that opens directly into a page does not prove the normal launch path. Keep real scheduling, permission, payment, and other external-system checks separate from results produced by substitutes, and record any deferred checks.
 
 The acceptance reviewer must check the final first slice against the shared agreement, especially:
 
@@ -208,7 +214,7 @@ The first slice is ready when:
 - the UI runs with Mock data before real services are complete
 - required state paths are visible and testable
 - the business layer has explicit integration points
-- UI has been checked on the reference, compact, and wide devices
+- UI has been checked on the agreed device and posture matrix
 - the remaining visual polish is isolated as a human review item
 
 ## Stop conditions
