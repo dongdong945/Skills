@@ -128,6 +128,10 @@ def load_manifest(path):
                 require(row["status"] != "verified", f"{key} 仍有证据缺口，不能标 verified")
                 continue
             require(cell.get("source") in SOURCES, f"{label}.source 无效")
+            if col is columns[0]:
+                require(cell["source"] == "figma", f"{label} 是参考列，图片 source 必须为 figma")
+            else:
+                require(cell["source"] != "figma", f"{label} 是设备列，Figma 图片仅能放在首个参考列")
             for field in ("revision", "os", "captured_at", "note"):
                 if field in cell:
                     text(cell[field], f"{label}.{field}")
@@ -153,6 +157,9 @@ def load_manifest(path):
 
 
 def merge_project(existing, incoming, project_name):
+    if existing:
+        reference_id = existing["columns"][0]["id"]
+        require(incoming["columns"][0]["id"] == reference_id, f"参考列 id 必须沿用 {reference_id}；不能改为 {incoming['columns'][0]['id']}")
     existing = deepcopy(existing) if existing else {"columns": [], "rows": [], "boundaries": []}
     incoming = deepcopy(incoming)
     columns = {col["id"]: col for col in existing["columns"]}

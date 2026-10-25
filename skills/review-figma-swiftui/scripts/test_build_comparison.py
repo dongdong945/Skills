@@ -111,6 +111,92 @@ class ComparisonTests(unittest.TestCase):
         self.assertIn("平板横屏", words)
         self.assertNotIn("iPhone SE", words)
 
+    def test_reference_images_require_figma_source(self):
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        before = self.snapshot()
+        for source in ("runtime", "preview", "baseline"):
+            data = deepcopy(self.base)
+            data["rows"][0]["cells"]["design"]["source"] = source
+            for options in ((), ("--check",)):
+                with self.subTest(source=source, options=options):
+                    result = self.run_cli(data, *options)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("参考列，图片 source 必须为 figma", result.stderr)
+                    self.assertEqual(self.snapshot(), before)
+
+    def test_figma_images_cannot_use_device_columns(self):
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        before = self.snapshot()
+        data = deepcopy(self.base)
+        data["rows"][0]["cells"]["phone"]["source"] = "figma"
+        for options in ((), ("--check",)):
+            with self.subTest(options=options):
+                result = self.run_cli(data, *options)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("设备列，Figma 图片仅能放在首个参考列", result.stderr)
+                self.assertEqual(self.snapshot(), before)
+
+    def test_reference_column_id_change_preserves_existing_report(self):
+        self.assertEqual(self.run_cli(self.base).returncode, 0)
+        before = self.snapshot()
+        data = deepcopy(self.base)
+        data["columns"][0]["id"] = "figma-new"
+        cells = data["rows"][0]["cells"]
+        cells["figma-new"] = cells.pop("design")
+        for reference in (cells["figma-new"], {"missing": "本轮缺少参考稿"}):
+            cells["figma-new"] = reference
+            for options in ((), ("--check",)):
+                with self.subTest(reference=reference, options=options):
+                    result = self.run_cli(data, *options)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("参考列 id 必须沿用 design", result.stderr)
+                    self.assertEqual(self.snapshot(), before)
+
+    def test_custom_reference_id_refreshes_without_becoming_a_device(self):
+        data = deepcopy(self.base)
+        data["columns"][0]["id"] = "figma-main"
+        cells = data["rows"][0]["cells"]
+        cells["figma-main"] = cells.pop("design")
+        self.assertEqual(self.run_cli(data).returncode, 0)
+        before = self.snapshot()
+        refreshed = self.root / "refreshed-reference.png"
+        Image.new("RGB", (24, 48), "red").save(refreshed)
+        cells["figma-main"]["path"] = refreshed.name
+        data["rows"][0]["note"] = "刷新参考稿"
+        result = self.run_cli(data, "--check")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        result = self.run_cli(data)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        registry = self.registry()
+        self.assertEqual([col["id"] for col in registry["columns"]], ["figma-main", "phone"])
+        row = registry["rows"][0]
+        self.assertEqual(row["note"], "刷新参考稿")
+        self.assertEqual(row["cells"]["figma-main"]["source"], "figma")
+        reference = self.output.parent / row["cells"]["figma-main"]["path"]
+        self.assertEqual(reference.read_bytes(), refreshed.read_bytes())
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual([option["value"] for option in parsed.selects["device"]], ["phone"])
+        self.assertEqual([figure["data-column"] for figure in parsed.figures if "hidden" not in figure], ["figma-main", "phone"])
+
+    def test_missing_reference_generates_and_rebuilds_from_canonical(self):
+        data = deepcopy(self.base)
+        missing = {"missing": "此状态没有 Figma 参考稿"}
+        data["rows"][0]["cells"]["design"] = missing
+        result = self.run_cli(data)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.registry()["rows"][0]["cells"]["design"], missing)
+        parsed = ReportParser(self.output.read_text())
+        self.assertEqual(len(parsed.images), 1)
+        self.assertIn(missing["missing"], "".join(parsed.words))
+        before = self.snapshot()
+        self.image.unlink()
+        for options in (("--check",), ()):
+            with self.subTest(options=options):
+                result = subprocess.run([sys.executable, str(SCRIPT), str(self.output.with_name("manifest.json")), "--project-root", str(self.root), *options], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.snapshot(), before)
+
     def test_check_is_read_only_and_build_is_repeatable(self):
         result = self.run_cli(self.base, "--check")
         self.assertEqual(result.returncode, 0, result.stderr)
