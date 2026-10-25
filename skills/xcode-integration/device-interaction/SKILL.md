@@ -81,7 +81,11 @@ UIView {{100, 200}, {60, 30}}, hitPoint: {130.0, 215.0}
 - `{50, 30}` - width and height
 - `hitPoint: {125.0, 215.0}` - calculated hitPoint point (best for tapping)
 
-**Always use hitPoint coordinates from the most recent hierarchy for touch events.** If a tap fails, recapture and retry once using the updated hierarchy. Do not estimate positions from screenshots alone.
+**For taps, use hitPoint coordinates from the most recent hierarchy.** If a tap fails, recapture and retry once using the updated hierarchy. Do not estimate positions from screenshots alone. Swipes follow the visible scroll-region and coordinate-space guidance below.
+
+Before tapping, confirm that the target is inside the actual visible viewport and is not covered by fixed navigation, a TabBar, a CTA, or another window. AX presence, `isHittable`, and a calculated hitPoint do not individually prove complete visibility. For scrolling content, use the intersection of the current window and scroll region, excluding actual overlays; scroll the target into view before using its fresh hitPoint.
+
+Keep swipe endpoints inside that viewport and target the intended scroll container. Use element-local anchors when the exposed tool supports them; otherwise convert to the coordinate space required by its protocol. Do not pass XCTest local coordinates directly to a tool that expects window coordinates. Refresh the hierarchy after navigation or window/pose changes, and distinguish an incorrect target or coordinate mapping from a production layout failure.
 
 Elements marked `isRemoteLeafPlaceholder` may not report child elements. Recapture the hierarchy; if a valid target position remains unavailable, report that interaction as unverified.
 
@@ -163,8 +167,9 @@ The `interactionCommand` parameter accepts a command syntax:
 Before any interaction, always capture and read the hierarchy (and screenshot). After any interaction, capture again and verify the result. For complex components (like toggles or switches), look at nested elements (like `Switch` or `Slider`) — nearby elements might correspond to the actual control. When done, report findings to the user.
 
 - To capture without interacting, use DeviceInteractionSynthesize with an empty interactionCommand.
-- Never guess positions from screenshots alone; use the most recent hierarchy hitPoint coordinates.
+- Never guess positions from screenshots alone; use fresh hierarchy hitPoints for taps and visible scroll-container anchors in the tool's required coordinate space for swipes.
 - If not confident or thumbnail resolution is insufficient, analyze the full-size screenshot.
+- When keyboard layout is in scope, confirm that the software keyboard actually appeared and that input, submission, and dismissal remain reachable. Successful hardware-keyboard text injection alone does not verify software-keyboard coverage or IME composition.
 
 ## tvOS (Apple TV)
 
@@ -179,20 +184,22 @@ tvOS is **focus-based**: there is no touchscreen, so coordinate taps/swipes do n
 - **App launch**: After starting a session, the app may take a few seconds to load. Capture the hierarchy and check it has meaningful UI elements before interacting. If the hierarchy is mostly empty or shows a launch screen, capture again before proceeding.
 - **After interaction**: If a tap or swipe doesn't produce the expected change, recapture the hierarchy and retry the interaction once (the element may have shifted during an animation). If it still fails after one retry, report the failure rather than retrying indefinitely.
 - **Loading states**: If the hierarchy shows a spinner or loading indicator, capture again after a brief pause. Do not interact with elements that are still loading.
+- **Short-lived feedback**: Capture the expected Toast or completion feedback promptly after the triggering action, then perform slower diagnostic queries. If the tool cannot capture that interval, record the evidence gap rather than extending production timing or calling a missed frame a functional failure.
 - **Performance**: Avoid adding wait delays that might slow down the process. Tools are designed to complete once animations are done.
 
 ## Judging Success vs Failure
 
 When verifying, distinguish between these categories:
 
-- **Functional bug** (always report): element doesn't respond to tap, navigation goes to wrong screen, crash, data not displayed, missing expected UI element.
+- **Functional bug** (always report): after confirming the intended app, target, visible hit area, and successful tool execution, the element does not respond, navigation goes to the wrong screen, data is not displayed, or expected UI is missing. Preserve uncertain interaction failures as unverified until their cause is established.
 - **Visual/layout bug** (always report): overlapping text, truncated labels, elements rendered off-screen, wrong colors, broken alignment.
 - **Transient state** (do NOT report as bug): loading spinners, brief animations, keyboard appearing/dismissing. Capture again after the transition completes.
-- **Unexpected exits** (always report): crashes, application exits. To identify, track process id and capture process's standard output.
+- **Unexpected exits** (always report): record the observed app exit, process id, tool/session state, and available logs. A managed session expiring or ending may also stop its app; an exit alone does not establish a production crash. Report the cause as unknown when the evidence cannot distinguish them.
 - **Expected behavior** (do NOT report as bug): empty states with placeholder text, disabled buttons when form is incomplete, permission dialogs.
 
 ## Error Handling
 
+- Distinguish tool errors, `NotRun`, expired sessions, and missing observations from app behavior; none establishes interaction success or a production defect by itself. Before replacing a session, inspect the current process and tool lifecycle behavior so a rebuild or relaunch does not silently discard the state under investigation. Reuse the existing app when supported and appropriate; reinstall or relaunch only when the verification needs it.
 - If application is not visible, retry once, as this might be caused by a slow device.
 - If tap target unclear, re-read hierarchy data for correct hitPoint coordinates.
 - You can inspect runtime logs to troubleshoot. If you suspect timing bugs, explain to the user that temporarily adding `print` statements in the relevant code may help diagnose the issue.
