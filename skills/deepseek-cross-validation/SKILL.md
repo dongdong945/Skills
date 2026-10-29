@@ -24,7 +24,9 @@ description: 通过 DeepSeek MCP 对代码、需求、方案或主审结论进�
 
 ## 环境边界
 
-全局 MCP 仅转发环境变量名，不在配置中保存密钥。变量必须存在于启动 MCP 的 Codex 进程环境中；在其他终端临时 `export` 不保证桌面应用能读取。修改环境后需重启相应进程并验证真实调用，不能用假 Key 的协议测试冒充 API 连通性验证。
+当前本机全局 MCP 通过 `~/.local/share/deepseek-mcp/start-from-keychain.sh` 启动，从 macOS 钥匙串的 `codex.deepseek.api-key` 项目（account 为当前用户名）读取 Key，再仅通过子进程环境变量 `DEEPSEEK_API_KEY` 交给 MCP。配置文件和启动器不保存密钥，不依赖 fish/zsh 或 Codex 父进程的环境变量。
+
+钥匙串需已解锁并允许 `/usr/bin/security` 读取该项目；读取失败时停止，不绕过访问控制。不要运行会将 Key 输出到聊天或工具日志的命令。修改启动配置后重新加载 MCP 或新建会话；更新 Key 后重启 MCP 即可读取新值。仍需验证真实调用，不能用假 Key 的协议测试冒充 API 连通性验证。
 
 官方 API 文档：https://api-docs.deepseek.com/
 
